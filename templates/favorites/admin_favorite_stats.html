@@ -1,0 +1,65 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">❤️ 收藏统计</h5>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-2">🏆 车辆收藏排行 TOP10</h6>
+      <div id="favRankChart" style="height:360px"></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-2">🏷️ 用户品牌偏好分析</h6>
+      <div id="brandChart" style="height:360px"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(function () {
+  var ranking = [
+    {% for v in vehicle_ranking %}
+      { name: '{{ v.brand.name }} {{ v.model_name }}', value: {{ v.fav_count }} },
+    {% endfor %}
+  ];
+  var brands = [
+    {% for b in brand_ranking %}
+      { name: '{{ b.vehicle__brand__name }}', value: {{ b.count }} },
+    {% endfor %}
+  ];
+
+  var rankChart = echarts.init(document.getElementById('favRankChart'));
+  rankChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 90, right: 30, top: 20, bottom: 30 },
+    xAxis: { type: 'value' },
+    yAxis: { type: 'category', data: ranking.map(function (i) { return i.name; }).reverse() },
+    series: [{
+      type: 'bar', data: ranking.map(function (i) { return i.value; }).reverse(),
+      barWidth: '50%',
+      itemStyle: { color: '#1e3a8a', borderRadius: [0, 6, 6, 0] }
+    }]
+  });
+
+  var brandChart = echarts.init(document.getElementById('brandChart'));
+  brandChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 次' },
+    legend: { bottom: 0 },
+    color: ['#1e3a8a', '#3b5bdb', '#f97316', '#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ef4444'],
+    series: [{
+      type: 'pie', radius: ['30%', '65%'],
+      data: brands
+    }]
+  });
+
+  $(window).on('resize', function () { rankChart.resize(); brandChart.resize(); });
+});
+</script>
+{% endblock %}

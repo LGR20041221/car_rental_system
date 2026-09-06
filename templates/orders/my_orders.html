@@ -1,0 +1,48 @@
+{% extends 'profile_base.html' %}
+{% block title %}我的订单 - {{ site_name }}{% endblock %}
+
+{% block profile_content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>📋 我的订单</span>
+    <div class="btn-group btn-group-sm">
+      <a class="btn {% if not status %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'orders:my_orders' %}">全部</a>
+      {% for value, label in status_choices %}
+        <a class="btn {% if status == value %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'orders:my_orders' %}?status={{ value }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr><th>订单号</th><th>车辆</th><th>租期</th><th>应付总额</th><th>状态</th><th>下单时间</th><th class="text-end">操作</th></tr>
+      </thead>
+      <tbody>
+        {% for order in page_obj %}
+          <tr>
+            <td class="small">{{ order.order_no }}</td>
+            <td class="fw-bold">{{ order.vehicle.brand.name }} {{ order.vehicle.model_name }}</td>
+            <td class="small">{{ order.start_date }} ~ {{ order.end_date }}</td>
+            <td class="text-accent fw-bold">¥{{ order.total_amount }}</td>
+            <td><span class="badge-status badge-{{ order.status }}">{{ order.status_text }}</span></td>
+            <td class="text-muted small">{{ order.created_at|date:'m-d H:i' }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-soft" href="{% url 'orders:order_detail' order.id %}">查看</a>
+              {% if order.status == 'pending' %}
+                <a class="btn btn-sm btn-accent" href="{% url 'orders:order_detail' order.id %}">去支付</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7"><div class="empty-state">
+            <div>📋</div>
+            <p>暂无订单，去挑选心仪的车辆吧</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'vehicles:vehicle_list' %}">去选车</a>
+          </div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

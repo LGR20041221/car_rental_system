@@ -1,0 +1,63 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">💰 收入报表</h5>
+  <div class="alert alert-success py-1 px-3 mb-0">近 14 天总收入：<b>¥{{ total_income }}</b></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-2">📈 收入趋势（近 14 天）</h6>
+      <div id="incomeChart" style="height:320px"></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-2">🍩 收入构成</h6>
+      <div id="compositionChart" style="height:320px"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(function () {
+  var daily = {{ daily_json|safe }};
+  var composition = {{ composition_json|safe }};
+  var dates = Object.keys(daily);
+  var values = dates.map(function (d) { return daily[d]; });
+
+  var incomeChart = echarts.init(document.getElementById('incomeChart'));
+  incomeChart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 60, right: 20, top: 30, bottom: 30 },
+    xAxis: { type: 'category', data: dates },
+    yAxis: { type: 'value' },
+    series: [{
+      name: '收入(元)', type: 'line', smooth: true,
+      data: values,
+      areaStyle: { color: 'rgba(59,91,219,.15)' },
+      lineStyle: { color: '#1e3a8a', width: 3 },
+      itemStyle: { color: '#f97316' }
+    }]
+  });
+
+  var compChart = echarts.init(document.getElementById('compositionChart'));
+  compChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { bottom: 0 },
+    color: ['#1e3a8a', '#3b5bdb', '#f97316', '#10b981', '#ef4444'],
+    series: [{
+      type: 'pie', radius: ['35%', '65%'],
+      label: { formatter: '{b}: ¥{c}' },
+      data: Object.keys(composition).map(function (k) { return { name: k, value: composition[k] }; })
+    }]
+  });
+
+  $(window).on('resize', function () { incomeChart.resize(); compChart.resize(); });
+});
+</script>
+{% endblock %}

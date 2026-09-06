@@ -1,0 +1,115 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">📋 订单详情：{{ order.order_no }}</h5>
+  <a class="btn btn-light-soft" href="{% url 'orders:admin_order_list' %}">← 返回列表</a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body d-flex justify-content-between flex-wrap gap-2 align-items-center">
+    <div class="text-muted small">下单时间：{{ order.created_at|date:'Y-m-d H:i' }}</div>
+    <span class="badge-status badge-{{ order.status }}">{{ order.status_text }}</span>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card p-4 mb-4">
+      <h6 class="fw-bold mb-3">订单信息</h6>
+      <table class="table table-sm mb-0">
+        <tr><th style="width:110px">下单用户</th><td>{{ order.user.username }}（{{ order.user.phone }}）</td></tr>
+        <tr><th>车辆</th><td>{{ order.vehicle.brand.name }} {{ order.vehicle.model_name }}（{{ order.vehicle.plate_number }}）</td></tr>
+        <tr><th>租期</th><td>{{ order.start_date }} ~ {{ order.end_date }}，共 {{ order.days }} 天</td></tr>
+        <tr><th>取/还地点</th><td>{{ order.pickup_location }} → {{ order.return_location }}</td></tr>
+        <tr><th>取车时间</th><td>{{ order.pickup_at|default:'—' }}</td></tr>
+        <tr><th>确认还车</th><td>{{ order.return_at|default:'—' }}</td></tr>
+        <tr><th>完成时间</th><td>{{ order.completed_at|default:'—' }}</td></tr>
+        <tr><th>取消原因</th><td>{{ order.cancel_reason|default:'—' }}</td></tr>
+        {% if order.extension_status == 'pending' %}
+          <tr>
+            <th>续租申请</th>
+            <td>
+              申请续租至 {{ order.extend_to_date }}，增加租金 <span class="text-accent fw-bold">¥{{ order.extend_rent }}</span>
+              <div class="mt-2">
+                <form class="d-inline" method="post" action="{% url 'orders:admin_order_extend_approve' order.id %}">
+                  {% csrf_token %}<button class="btn btn-sm btn-success">批准</button>
+                </form>
+                <form class="d-inline" method="post" action="{% url 'orders:admin_order_extend_reject' order.id %}">
+                  {% csrf_token %}<button class="btn btn-sm btn-outline-danger">驳回</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card p-4 mb-4">
+      <h6 class="fw-bold mb-3">费用明细</h6>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">原价租金</span><span>¥{{ order.base_rent }}</span></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">动态租金</span><span>¥{{ order.dynamic_rent }}</span></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">应付租金</span><span>¥{{ order.payable_rent }}</span></div>
+      <div class="d-flex justify-content-between py-1"><span class="text-muted">押金</span><span>¥{{ order.deposit }}</span></div>
+      {% if order.fine > 0 %}
+        <div class="d-flex justify-content-between py-1"><span class="text-muted">违约金</span><span class="text-danger">¥{{ order.fine }}</span></div>
+      {% endif %}
+      <div class="d-flex justify-content-between py-2 border-top mt-1">
+        <span class="fw-bold">应付总额</span><span class="fw-bold text-accent fs-5">¥{{ order.total_amount }}</span>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h6 class="fw-bold mb-3">订单操作</h6>
+      {% if order.status == 'to_return' or order.status == 'renting' or order.status == 'overdue' %}
+        <form method="post" action="{% url 'orders:admin_order_verify' order.id %}"
+              onsubmit="return confirm('核验通过将完成订单并退还押金，确认？')">
+          {% csrf_token %}
+          <button class="btn btn-success w-100 mb-2">✅ 核验还车（完成订单）</button>
+        </form>
+        <form method="post" action="{% url 'orders:admin_order_force_return' order.id %}"
+              onsubmit="return confirm('强制还车将直接完成订单并退还押金，确认？')">
+          {% csrf_token %}
+          <button class="btn btn-warning w-100 mb-2">⏭️ 强制还车</button>
+        </form>
+      {% endif %}
+      {% if order.status in 'pending paid' %}
+        <button class="btn btn-outline-danger w-100 mb-2" onclick="showAdminCancel()">取消订单（退款）</button>
+      {% endif %}
+      {% if order.status == 'overdue' or order.status == 'to_return' %}
+        <form method="post" action="{% url 'orders:admin_order_abnormal' order.id %}"
+              onsubmit="return confirm('将订单标记为异常处理？')">
+          {% csrf_token %}
+          <button class="btn btn-outline-warning w-100">⚠️ 标记异常处理</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 管理员取消订单弹窗 -->
+<div class="modal fade" id="adminCancelModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'orders:admin_order_cancel' order.id %}">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">取消订单</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="small text-muted">将取消该订单并{% if order.status == 'paid' %}完成租金与押金退款{% endif %}。</p>
+        <input type="text" class="form-control" name="reason" placeholder="取消原因（选填）">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light-soft" data-bs-dismiss="modal">关闭</button>
+        <button class="btn btn-danger">确认取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function showAdminCancel() { new bootstrap.Modal(document.getElementById('adminCancelModal')).show(); }
+</script>
+{% endblock %}

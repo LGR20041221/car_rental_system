@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block body_class %}screen-body{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block title %}运营数据大屏 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<!-- 大屏头部 -->
+<div class="screen-header">
+  <div class="screen-title"><i>◆</i> 汽车租赁平台 · 运营数据大屏</div>
+  <div class="d-flex align-items-center gap-3">
+    <span class="screen-stat"><div class="lbl">近90天累计收入</div><div class="num" id="totalIncome">¥0</div></span>
+    <a class="btn btn-sm btn-accent" href="{% url 'dashboard:admin_dashboard' %}">返回后台</a>
+  </div>
+</div>
+
+<div class="container-fluid p-4">
+  <!-- 顶部核心指标 -->
+  <div class="row g-3 mb-4">
+    <div class="col-3"><div class="screen-stat"><div class="lbl">今日订单</div><div class="num" id="statTodayOrders">0</div></div></div>
+    <div class="col-3"><div class="screen-stat"><div class="lbl">今日收入</div><div class="num" id="statTodayIncome">¥0</div></div></div>
+    <div class="col-3"><div class="screen-stat"><div class="lbl">注册用户</div><div class="num" id="statUsers">0</div></div></div>
+    <div class="col-3"><div class="screen-stat"><div class="lbl">在运营车辆</div><div class="num" id="statVehicles">0</div></div></div>
+  </div>
+
+  <!-- 第一行：订单趋势 + 收入构成 -->
+  <div class="row g-3 mb-3">
+    <div class="col-lg-8">
+      <div class="screen-chart">
+        <div class="chart-title">订单趋势（近 14 天）</div>
+        <div id="orderTrendChart" class="chart-box" style="height:280px"></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="screen-chart">
+        <div class="chart-title">收入构成</div>
+        <div id="revenueChart" class="chart-box" style="height:280px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第二行：热门车型 + 车辆利用率 -->
+  <div class="row g-3 mb-3">
+    <div class="col-lg-7">
+      <div class="screen-chart">
+        <div class="chart-title">热门车型排行 TOP10</div>
+        <div id="hotChart" class="chart-box" style="height:280px"></div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="screen-chart">
+        <div class="chart-title">车辆利用率（按车型）</div>
+        <div id="utilChart" class="chart-box" style="height:280px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第三行：用户增长 -->
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="screen-chart">
+        <div class="chart-title">用户增长趋势（近 30 天）</div>
+        <div id="userChart" class="chart-box" style="height:260px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(function () {
+  var axisColor = '#94a3b8';
+  var splitLine = { lineStyle: { color: 'rgba(148,163,184,.12)' } };
+  var baseOpt = {
+    backgroundColor: 'transparent',
+    textStyle: { color: axisColor },
+    tooltip: { trigger: 'axis' },
+    grid: { left: 50, right: 20, top: 30, bottom: 30 },
+    xAxis: { type: 'category', axisLine: { lineStyle: { color: '#475569' } }, axisLabel: { color: axisColor } },
+    yAxis: { type: 'value', splitLine: splitLine, axisLabel: { color: axisColor } }
+  };
+
+  var charts = [];
+  function init(id) { var c = echarts.init(document.getElementById(id)); charts.push(c); return c; }
+  var orderChart = init('orderTrendChart');
+  var revenueChart = init('revenueChart');
+  var hotChart = init('hotChart');
+  var utilChart = init('utilChart');
+  var userChart = init('userChart');
+
+  $.getJSON('{% url "dashboard:admin_data_api" %}')
+    .done(function (d) {
+      // 顶部指标
+      $('#statTodayOrders').text(d.stats.today_orders);
+      $('#statTodayIncome').text('¥' + d.stats.today_income);
+      $('#statUsers').text(d.stats.total_users);
+      $('#statVehicles').text(d.stats.total_vehicles);
+      $('#totalIncome').text('¥' + d.total_income);
+
+      // 订单趋势
+      orderChart.setOption($.extend(true, {}, baseOpt, {
+        tooltip: { formatter: function (p) { return p[0].name + '<br/>订单量：' + p[0].value; } },
+        series: [{
+          type: 'line', smooth: true,
+          data: d.order_trend.map(function (i) { return i.count; }),
+          lineStyle: { color: '#60a5fa', width: 3 },
+          itemStyle: { color: '#f97316' },
+          areaStyle: { color: 'rgba(96,165,250,.18)' }
+        }]
+      }));
+
+      // 收入构成
+      var comp = d.revenue_composition;
+      revenueChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+        legend: { bottom: 0, textStyle: { color: axisColor } },
+        color: ['#60a5fa', '#3b82f6', '#f97316', '#34d399', '#f87171', '#a78bfa'],
+        series: [{
+          type: 'pie', radius: ['35%', '62%'],
+          label: { color: axisColor },
+          data: comp.labels.map(function (k, i) { return { name: k, value: comp.values[i] }; })
+        }]
+      });
+
+      // 热门车型
+      var hot = d.hot_vehicles;
+      hotChart.setOption($.extend(true, {}, baseOpt, {
+        grid: { left: 120, right: 30, top: 20, bottom: 30 },
+        xAxis: { type: 'value' },
+        yAxis: { type: 'category', data: hot.names.slice().reverse(), axisLabel: { color: axisColor } },
+        series: [{
+          type: 'bar', data: hot.counts.slice().reverse(),
+          barWidth: '55%',
+          itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#1e3a8a' }, { offset: 1, color: '#60a5fa' }
+          ]), borderRadius: [0, 6, 6, 0] }
+        }]
+      }));
+
+      // 车辆利用率仪表盘
+      var utils = d.utilization;
+      var gaugeData = utils.map(function (u) {
+        return { name: u.name, value: u.rate, itemStyle: { color: u.rate > 60 ? '#f97316' : (u.rate > 30 ? '#60a5fa' : '#34d399') } };
+      });
+      utilChart.setOption({
+        backgroundColor: 'transparent',
+        series: gaugeData.map(function (g, idx) {
+          return {
+            name: g.name, type: 'gauge', center: ['50%', '50%'], radius: '90%',
+            min: 0, max: 100, splitNumber: 5,
+            startAngle: 210, endAngle: -30,
+            axisLine: { lineStyle: { width: 10, color: [[1, 'rgba(148,163,184,.15)']] } },
+            pointer: { show: false },
+            axisTick: { show: false },
+            splitLine: { show: false },
+            axisLabel: { show: false },
+            title: { offsetCenter: [0, '30%'], color: '#e2e8f0', fontSize: 12 },
+            detail: { valueAnimation: true, formatter: '{value}%', offsetCenter: [0, '55%'], color: g.itemStyle.color, fontSize: 22, fontWeight: 'bold' },
+            data: [{ value: g.value, name: g.name }]
+          };
+        })
+      });
+
+      // 用户增长
+      userChart.setOption($.extend(true, {}, baseOpt, {
+        tooltip: { formatter: function (p) { return p[0].name + '<br/>注册用户：' + p[0].value; } },
+        series: [{
+          type: 'line', smooth: true,
+          data: d.user_growth.map(function (i) { return i.count; }),
+          lineStyle: { color: '#34d399', width: 3 },
+          itemStyle: { color: '#f97316' },
+          areaStyle: { color: 'rgba(52,211,153,.18)' }
+        }]
+      }));
+    })
+    .fail(function () {
+      $('.chart-box').html('<div class="text-center text-muted py-5">图表数据加载失败</div>');
+    });
+
+  $(window).on('resize', function () { charts.forEach(function (c) { c.resize(); }); });
+});
+</script>
+{% endblock %}

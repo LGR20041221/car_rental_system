@@ -1,0 +1,57 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">📢 公告管理</h5>
+  <div class="d-flex gap-2">
+    <form class="d-flex gap-2" method="get">
+      <input type="text" class="form-control" style="width:200px" name="keyword" value="{{ keyword }}" placeholder="搜索公告标题">
+      <button class="btn btn-primary">搜索</button>
+    </form>
+    <a class="btn btn-accent" href="{% url 'notifications:admin_announcement_create' %}">+ 发布公告</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th><th>标题</th><th>发布人</th><th>发布时间</th>
+          <th>置顶</th><th>状态</th><th class="text-end">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for announcement in page_obj %}
+          <tr>
+            <td>{{ announcement.id }}</td>
+            <td class="fw-bold">{{ announcement.title }}</td>
+            <td>{{ announcement.publisher.username|default:'—' }}</td>
+            <td class="text-muted small">{{ announcement.created_at|date:'Y-m-d' }}</td>
+            <td>{% if announcement.is_top %}<span class="badge bg-danger">置顶</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if announcement.is_active %}<span class="badge-status badge-available">已发布</span>
+              {% else %}<span class="badge-status badge-cancelled">下架</span>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <form class="d-inline" method="post" action="{% url 'notifications:admin_announcement_toggle_top' announcement.id %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-soft">{{ announcement.is_top|yesno:'取消置顶,置顶' }}</button>
+              </form>
+              <a class="btn btn-sm btn-light-soft" href="{% url 'notifications:admin_announcement_edit' announcement.id %}">编辑</a>
+              <form class="d-inline" method="post" action="{% url 'notifications:admin_announcement_delete' announcement.id %}"
+                    onsubmit="return confirm('确定删除公告 {{ announcement.title }} 吗？')">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7"><div class="empty-state">{% if keyword %}未找到匹配的公告{% else %}暂无公告{% endif %}</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

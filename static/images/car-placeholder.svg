@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e0e7ff"/>
+      <stop offset="1" stop-color="#f8fafc"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="240" fill="url(#g)"/>
+  <path d="M90 150l28-58c6-13 18-19 32-19h100c14 0 26 6 32 19l28 58z" fill="#c7d2fe"/>
+  <circle cx="150" cy="160" r="26" fill="#1e3a8a"/>
+  <circle cx="150" cy="160" r="12" fill="#f97316"/>
+  <circle cx="250" cy="160" r="26" fill="#1e3a8a"/>
+  <circle cx="250" cy="160" r="12" fill="#f97316"/>
+  <rect x="100" y="175" width="200" height="14" rx="7" fill="#94a3b8"/>
+  <text x="200" y="225" text-anchor="middle" font-size="16" fill="#64748b" font-family="Arial, sans-serif">暂无车辆图片</text>
+</svg>

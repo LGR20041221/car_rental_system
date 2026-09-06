@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}提交评价 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="section-title">⭐ 提交评价</div>
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card p-4">
+        <div class="mb-3">
+          <div class="fw-bold">{{ order.vehicle.brand.name }} {{ order.vehicle.model_name }}</div>
+          <div class="text-muted small">订单号：{{ order.order_no }} · 租期 {{ order.start_date }} ~ {{ order.end_date }}</div>
+        </div>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label d-block">评分</label>
+            <div class="d-flex gap-3">
+              {% for radio in form.rating %}
+                <label class="form-check form-check-inline">
+                  {{ radio.tag }}
+                  <span class="form-check-label star-rating">{{ radio.choice_label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            {% if form.rating.errors %}<div class="invalid-feedback d-block">{{ form.rating.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">评价内容</label>
+            {{ form.content }}
+          </div>
+          <button class="btn btn-primary" type="submit">发布评价</button>
+          <a class="btn btn-light-soft" href="{% url 'orders:order_detail' order.id %}">取消</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

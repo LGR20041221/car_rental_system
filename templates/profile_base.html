@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ title|default:'个人中心' }} - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row g-4">
+    <!-- 左侧个人中心导航 -->
+    <div class="col-lg-3">
+      <div class="card p-3 mb-3">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span class="avatar-circle">{{ current_user.username|slice:":1"|upper }}</span>
+          <div>
+            <div class="fw-bold">{{ current_user.username }}</div>
+            <small class="text-muted">{{ current_user.email }}</small>
+          </div>
+        </div>
+        <ul class="nav nav-pills flex-column gap-1">
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/info/' %}active{% endif %}" href="{% url 'users:profile_info' %}">👤 个人信息</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/password/' %}active{% endif %}" href="{% url 'users:change_password' %}">🔒 修改密码</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/orders/' %}active{% endif %}" href="{% url 'orders:my_orders' %}">📋 我的订单</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/favorites/' %}active{% endif %}" href="{% url 'favorites:list' %}">❤️ 我的收藏</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/coupons/' %}active{% endif %}" href="{% url 'payments:coupon_list' %}">🎁 我的优惠券</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/reviews/' %}active{% endif %}" href="{% url 'reviews:my_reviews' %}">⭐ 我的评价</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/bills/' %}active{% endif %}" href="{% url 'payments:bill_list' %}">💳 消费账单</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.path == '/profile/notifications/' %}active{% endif %}" href="{% url 'notifications:list' %}">🔔 消息中心</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <!-- 右侧内容 -->
+    <div class="col-lg-9">
+      {% block profile_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

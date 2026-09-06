@@ -1,0 +1,47 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">{{ title }}</h5>
+  <a class="btn btn-light-soft" href="{% url 'pricing:admin_pricing_list' %}">← 返回列表</a>
+</div>
+
+<div class="card">
+  <div class="card-body p-4">
+    <form method="post" class="form-card" novalidate>
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label">规则类型</label>
+        {{ form.rule_type }}
+        <small class="text-muted">
+          {% if rule %}类型为系统约定，不允许修改{% else %}请选择要新增的规则类型{% endif %}
+        </small>
+        {% if form.rule_type.errors %}<div class="invalid-feedback d-block">{{ form.rule_type.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">规则名称</label>
+        {{ form.name }}
+        {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">调整系数（-0.5 ~ 0.5）</label>
+        {{ form.factor }}
+        <small class="text-muted">节假日上浮填 0.20~0.50；淡季促销、早鸟/长租优惠填负数，如 -0.15</small>
+        {% if form.factor.errors %}<div class="invalid-feedback d-block">{{ form.factor.errors|striptags }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label">触发说明</label>
+        {{ form.description }}
+      </div>
+      <div class="mb-3">
+        <div class="form-check">
+          {{ form.enabled }}
+          <label class="form-check-label" for="id_enabled">启用该规则</label>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">保存</button>
+      <a class="btn btn-light-soft" href="{% url 'pricing:admin_pricing_list' %}">取消</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

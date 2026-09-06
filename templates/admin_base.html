@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}{{ title|default:'管理后台' }} - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="admin-body d-flex">
+  <!-- 左侧边导航栏 -->
+  <aside class="admin-sidebar">
+    <div class="side-title">管理导航</div>
+    <a class="side-link {% if request.path == '/admin/' %}active{% endif %}" href="{% url 'dashboard:admin_dashboard' %}">
+      📊 仪表盘
+    </a>
+    <!-- 个人中心（子菜单） -->
+    <div class="side-link {% if '/admin/profile/' in request.path %}active{% endif %}" data-bs-toggle="collapse" data-bs-target="#sideProfile">
+      👤 个人中心 <span class="ms-auto">▾</span>
+    </div>
+    <div class="collapse side-sub {% if '/admin/profile/' in request.path %}show{% endif %}" id="sideProfile">
+      <a class="side-link {% if request.path == '/admin/profile/info/' %}active{% endif %}" href="{% url 'users:admin_profile_info' %}">个人信息</a>
+      <a class="side-link {% if request.path == '/admin/profile/password/' %}active{% endif %}" href="{% url 'users:admin_change_password' %}">修改密码</a>
+    </div>
+    <a class="side-link {% if '/admin/users/' in request.path %}active{% endif %}" href="{% url 'users:admin_user_list' %}">
+      👥 用户管理
+    </a>
+    <a class="side-link {% if '/admin/vehicles/' in request.path %}active{% endif %}" href="{% url 'vehicles:admin_vehicle_list' %}">
+      🚗 车辆管理
+    </a>
+    <a class="side-link {% if '/admin/orders/' in request.path %}active{% endif %}" href="{% url 'orders:admin_order_list' %}">
+      📋 订单管理
+    </a>
+    <!-- 营销管理（子菜单） -->
+    <div class="side-link {% if '/admin/coupons/' in request.path or '/admin/pricing/' in request.path %}active{% endif %}" data-bs-toggle="collapse" data-bs-target="#sideMarketing">
+      🎁 营销管理 <span class="ms-auto">▾</span>
+    </div>
+    <div class="collapse side-sub {% if '/admin/coupons/' in request.path or '/admin/pricing/' in request.path %}show{% endif %}" id="sideMarketing">
+      <a class="side-link {% if '/admin/coupons/' in request.path %}active{% endif %}" href="{% url 'payments:admin_coupon_list' %}">优惠券管理</a>
+      <a class="side-link {% if '/admin/pricing/' in request.path %}active{% endif %}" href="{% url 'pricing:admin_pricing_list' %}">定价规则</a>
+    </div>
+    <!-- 运营管理（子菜单） -->
+    <div class="side-link {% if '/admin/reviews/' in request.path or '/admin/announcements/' in request.path or '/admin/favorites/' in request.path %}active{% endif %}" data-bs-toggle="collapse" data-bs-target="#sideOperation">
+      📈 运营管理 <span class="ms-auto">▾</span>
+    </div>
+    <div class="collapse side-sub {% if '/admin/reviews/' in request.path or '/admin/announcements/' in request.path or '/admin/favorites/' in request.path %}show{% endif %}" id="sideOperation">
+      <a class="side-link {% if '/admin/reviews/' in request.path %}active{% endif %}" href="{% url 'reviews:admin_review_list' %}">评价管理</a>
+      <a class="side-link {% if '/admin/announcements/' in request.path %}active{% endif %}" href="{% url 'notifications:admin_announcement_list' %}">公告管理</a>
+      <a class="side-link {% if '/admin/favorites/' in request.path %}active{% endif %}" href="{% url 'favorites:admin_stats' %}">收藏统计</a>
+    </div>
+    <!-- 财务管理（子菜单） -->
+    <div class="side-link {% if '/admin/finance/' in request.path %}active{% endif %}" data-bs-toggle="collapse" data-bs-target="#sideFinance">
+      💰 财务管理 <span class="ms-auto">▾</span>
+    </div>
+    <div class="collapse side-sub {% if '/admin/finance/' in request.path %}show{% endif %}" id="sideFinance">
+      <a class="side-link {% if request.path == '/admin/finance/' %}active{% endif %}" href="{% url 'payments:admin_finance' %}">收入报表</a>
+      <a class="side-link {% if '/admin/finance/refunds/' in request.path %}active{% endif %}" href="{% url 'payments:admin_refund_list' %}">退款处理</a>
+    </div>
+    <a class="side-link {% if '/admin/dashboard/' in request.path %}active{% endif %}" href="{% url 'dashboard:admin_data_screen' %}">
+      🖥️ 数据大屏
+    </a>
+    <a class="side-link {% if '/admin/settings/' in request.path %}active{% endif %}" href="{% url 'pricing:admin_settings' %}">
+      ⚙️ 系统设置
+    </a>
+    <div class="side-title mt-2">回到前台</div>
+    <a class="side-link" href="{% url 'core:home' %}">🏠 返回用户端</a>
+  </aside>
+
+  <!-- 主内容区 -->
+  <div class="admin-content">
+    {% block admin_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

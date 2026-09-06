@@ -1,0 +1,62 @@
+{% extends 'profile_base.html' %}
+{% load static %}
+{% block title %}我的收藏 - {{ site_name }}{% endblock %}
+
+{% block profile_content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>❤️ 我的收藏</span>
+    <form class="d-flex gap-2" method="get">
+      <select class="form-select form-select-sm" style="width:130px" name="brand">
+        <option value="">全部品牌</option>
+        {% for b in brands %}
+          <option value="{{ b.id }}" {% if brand == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="number" class="form-control form-control-sm" style="width:100px" name="price_max" value="{{ price_max }}" placeholder="日租上限">
+      <button class="btn btn-sm btn-primary">筛选</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <form method="post" action="{% url 'favorites:batch_remove' %}" id="favoriteForm">
+      {% csrf_token %}
+      {% if page_obj %}
+        <div class="row g-3">
+          {% for fav in page_obj %}
+            <div class="col-md-6">
+              <div class="card card-hover vehicle-card h-100">
+                <div class="card-body d-flex gap-3">
+                  {% if fav.vehicle.cover_image %}
+                    <img src="{{ fav.vehicle.cover_image.url }}" style="width:140px;height:96px;object-fit:cover;border-radius:10px">
+                  {% else %}
+                    <img src="{% static 'images/car-placeholder.svg' %}" style="width:140px;height:96px;object-fit:cover;border-radius:10px">
+                  {% endif %}
+                  <div class="flex-grow-1">
+                    <a href="{% url 'vehicles:vehicle_detail' fav.vehicle.id %}" class="fw-bold text-dark">{{ fav.vehicle.brand.name }} {{ fav.vehicle.model_name }}</a>
+                    <div class="text-muted small my-1">{{ fav.vehicle.category.name }} · {{ fav.vehicle.seats }}座 · {{ fav.vehicle.fuel_text }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="text-accent fw-bold">¥{{ fav.vehicle.daily_rent }}/天</span>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="ids" value="{{ fav.id }}">
+                        <label class="form-check-label small">取消收藏</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <button class="btn btn-outline-danger mt-3" type="submit">批量取消收藏</button>
+      {% else %}
+        <div class="empty-state">
+          <div>❤️</div>
+          <p>暂无收藏车辆，去挑选喜欢的车辆收藏吧</p>
+          <a class="btn btn-primary btn-sm" href="{% url 'vehicles:vehicle_list' %}">去选车</a>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

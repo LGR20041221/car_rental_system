@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}下单确认 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="section-title">📝 下单确认</div>
+  <div class="row g-4">
+    <!-- 左侧：车辆 + 表单 -->
+    <div class="col-lg-7">
+      {% if vehicle %}
+        <div class="card mb-4">
+          <div class="card-body d-flex gap-3">
+            {% if vehicle.cover_image %}
+              <img src="{{ vehicle.cover_image.url }}" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="{{ vehicle.model_name }}">
+            {% else %}
+              <img src="{% static 'images/car-placeholder.svg' %}" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="{{ vehicle.model_name }}">
+            {% endif %}
+            <div>
+              <h5 class="fw-bold mb-1">{{ vehicle.brand.name }} {{ vehicle.model_name }}</h5>
+              <div class="text-muted small mb-1">{{ vehicle.category.name }} · {{ vehicle.seats }}座 · {{ vehicle.fuel_text }} · {{ vehicle.color }}</div>
+              <div class="text-accent fw-bold">¥{{ vehicle.daily_rent }}/天</div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card p-4">
+        <form method="post" id="orderForm" novalidate>
+          {% csrf_token %}
+          {{ form.vehicle_id }}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">取车日期</label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}<div class="invalid-feedback d-block">{{ form.start_date.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">还车日期</label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}<div class="invalid-feedback d-block">{{ form.end_date.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">取车地点</label>
+              {{ form.pickup_location }}
+              {% if form.pickup_location.errors %}<div class="invalid-feedback d-block">{{ form.pickup_location.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">还车地点</label>
+              {{ form.return_location }}
+              {% if form.return_location.errors %}<div class="invalid-feedback d-block">{{ form.return_location.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label">使用优惠券</label>
+              <select class="form-select" name="coupon_id">
+                <option value="">不使用优惠券</option>
+                {% for uc in coupons %}
+                  <option value="{{ uc.id }}" data-type="{{ uc.coupon.discount_type }}"
+                          data-value="{{ uc.coupon.value }}" data-min="{{ uc.coupon.min_amount }}">
+                    {{ uc.coupon.name }}（{{ uc.coupon.value_text }}{% if uc.coupon.min_amount %} · 满{{ uc.coupon.min_amount }}可用{% endif %}）
+                  </option>
+                {% endfor %}
+              </select>
+              {% if not coupons %}
+                <small class="text-muted">暂无可用优惠券，可前往 <a href="{% url 'payments:coupon_list' %}">我的优惠券</a> 领取</small>
+              {% endif %}
+            </div>
+          </div>
+          <div id="priceError" class="alert alert-danger mt-3 d-none"></div>
+          <button class="btn btn-accent btn-lg w-100 mt-4" type="submit" id="submitOrder">提交订单</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 右侧：价格预览 -->
+    <div class="col-lg-5">
+      <div class="card p-4 position-sticky" style="top:76px">
+        <h6 class="fw-bold mb-3">💰 价格明细（动态定价）</h6>
+        <div id="pricePanel" class="text-muted text-center py-4">
+          {% if vehicle %}
+            选择取还车日期后实时计算价格
+          {% else %}
+            <p>请先选择车辆后再下单</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'vehicles:vehicle_list' %}">去选车</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(function () {
+  var vehicleId = {{ vehicle.id|default:'0' }};
+  if (!vehicleId) return;
+
+  function fmt(n) { return Number(n).toFixed(2); }
+
+  function loadPrice() {
+    var start = $('input[name="start_date"]').val();
+    var end = $('input[name="end_date"]').val();
+    var $panel = $('#pricePanel');
+    var $error = $('#priceError');
+    $error.addClass('d-none');
+    if (!start || !end) {
+      $panel.html('<div class="text-muted">请选择取车与还车日期</div>');
+      return;
+    }
+    $.getJSON('/price-preview/', { vehicle_id: vehicleId, start_date: start, end_date: end })
+      .done(function (res) {
+        if (!res.success) {
+          $panel.html('<div class="text-danger">' + res.message + '</div>');
+          return;
+        }
+        // 优惠券抵扣（客户端计算）
+        var discount = 0;
+        var $sel = $('select[name="coupon_id"]');
+        var $opt = $sel.find('option:selected');
+        if ($opt.val()) {
+          var amount = res.dynamic_total;
+          var min = parseFloat($opt.data('min'));
+          if (amount >= min) {
+            if ($opt.data('type') === 'fixed') {
+              discount = Math.min(parseFloat($opt.data('value')), amount);
+            } else {
+              discount = Math.round(amount * (1 - parseFloat($opt.data('value')) / 10) * 100) / 100;
+            }
+          }
+        }
+        var payable = Math.max(res.dynamic_total - discount, 0);
+        var total = payable + res.deposit;
+        var rows = res.items.slice(0, 3).map(function (it) {
+          return '<tr><td>' + it.date + '</td><td>¥' + fmt(it.base) + '</td><td>' +
+            (it.factor > 0 ? '<span class="text-danger">+' : '<span class="text-success">') +
+            Math.round(it.factor * 100) + '%</span></td><td>¥' + fmt(it.dynamic) + '</td></tr>';
+        }).join('');
+        if (res.items.length > 3) {
+          rows += '<tr><td colspan="4" class="text-muted small text-center">…共 ' + res.items.length + ' 天</td></tr>';
+        }
+        $panel.html(
+          '<table class="table table-sm small mb-2">' +
+            '<thead><tr><th>日期</th><th>原价/天</th><th>动态系数</th><th>动态价/天</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table>' +
+          '<div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">原价租金</span><span>¥' + fmt(res.base_total) + '</span></div>' +
+          '<div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">动态调价后</span><span class="fw-bold">¥' + fmt(res.dynamic_total) + '</span></div>' +
+          '<div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">优惠券抵扣</span><span class="text-success">-¥' + fmt(discount) + '</span></div>' +
+          '<div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted fw-bold">应付租金</span><span class="fw-bold text-accent">¥' + fmt(payable) + '</span></div>' +
+          '<div class="d-flex justify-content-between py-1 border-bottom"><span class="text-muted">押金（可退）</span><span>¥' + fmt(res.deposit) + '</span></div>' +
+          '<div class="d-flex justify-content-between py-2"><span class="fw-bold">应付总额</span><span class="fw-bold fs-5 text-accent">¥' + fmt(total) + '</span></div>' +
+          '<div class="text-muted small">押金在还车核验后退还，不计入消费。</div>'
+        );
+      })
+      .fail(function () {
+        $panel.html('<div class="text-danger">价格计算失败</div>');
+      });
+  }
+
+  $('input[name="start_date"], input[name="end_date"], select[name="coupon_id"]').on('change', loadPrice);
+  // 表单提交前校验租期冲突
+  $('#orderForm').on('submit', function (e) {
+    var start = $('input[name="start_date"]').val();
+    var end = $('input[name="end_date"]').val();
+    if (!start || !end) {
+      e.preventDefault();
+      $('#priceError').removeClass('d-none').text('请选择取车与还车日期');
+    }
+  });
+});
+</script>
+{% endblock %}

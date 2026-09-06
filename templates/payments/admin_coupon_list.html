@@ -1,0 +1,59 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">🎁 优惠券管理</h5>
+  <div class="d-flex gap-2">
+    <form class="d-flex gap-2" method="get">
+      <input type="text" class="form-control" style="width:200px" name="keyword" value="{{ keyword }}" placeholder="搜索优惠券名称">
+      <button class="btn btn-primary">搜索</button>
+    </form>
+    <a class="btn btn-accent" href="{% url 'payments:admin_coupon_create' %}">+ 新增优惠券</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th><th>名称</th><th>类型</th><th>面额/折扣</th><th>门槛</th>
+          <th>领取/总量</th><th>有效期</th><th>状态</th><th class="text-end">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for coupon in page_obj %}
+          <tr>
+            <td>{{ coupon.id }}</td>
+            <td class="fw-bold">{{ coupon.name }}</td>
+            <td>{{ coupon.type_text }}</td>
+            <td class="text-accent fw-bold">{{ coupon.value_text }}</td>
+            <td>{% if coupon.min_amount %}满{{ coupon.min_amount }}{% else %}无{% endif %}</td>
+            <td>{{ coupon.claimed_count }}/{{ coupon.total_count }}</td>
+            <td class="small">{{ coupon.start_date|date:'m-d' }} ~ {{ coupon.end_date|date:'m-d' }}</td>
+            <td>
+              {% if coupon.is_active %}<span class="badge-status badge-available">启用</span>
+              {% else %}<span class="badge-status badge-cancelled">停用</span>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-light-soft" href="{% url 'payments:admin_coupon_edit' coupon.id %}">编辑</a>
+              <form class="d-inline" method="post" action="{% url 'payments:admin_coupon_toggle' coupon.id %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-soft">{{ coupon.is_active|yesno:'停用,启用' }}</button>
+              </form>
+              <form class="d-inline" method="post" action="{% url 'payments:admin_coupon_delete' coupon.id %}"
+                    onsubmit="return confirm('确定删除优惠券 {{ coupon.name }} 吗？')">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="9"><div class="empty-state">{% if keyword %}未找到匹配的优惠券{% else %}暂无优惠券{% endif %}</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

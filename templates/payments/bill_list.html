@@ -1,0 +1,40 @@
+{% extends 'profile_base.html' %}
+{% block title %}消费账单 - {{ site_name }}{% endblock %}
+
+{% block profile_content %}
+<div class="card">
+  <div class="card-header">💳 消费账单</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr><th>订单号</th><th>类型</th><th>金额</th><th>方式</th><th>时间</th></tr>
+      </thead>
+      <tbody>
+        {% for bill in page_obj %}
+          <tr>
+            <td class="small">{{ bill.order.order_no }}</td>
+            <td>
+              {% if bill.payment_type == 'rent' %}<span class="badge-status badge-paid">租金</span>
+              {% elif bill.payment_type == 'deposit' %}<span class="badge-status badge-renting">押金</span>
+              {% elif bill.payment_type == 'fine' %}<span class="badge-status badge-overdue">违约金</span>
+              {% elif bill.payment_type == 'deposit_refund' %}<span class="badge-status badge-available">押金退还</span>
+              {% elif bill.payment_type == 'rent_refund' %}<span class="badge-status badge-cancelled">租金退款</span>
+              {% endif %}
+            </td>
+            <td class="fw-bold {% if bill.payment_type == 'rent' or bill.payment_type == 'deposit' or bill.payment_type == 'fine' %}text-danger{% else %}text-success{% endif %}">
+              {% if bill.payment_type == 'rent' or bill.payment_type == 'deposit' or bill.payment_type == 'fine' %}-{% else %}+{% endif %}¥{{ bill.amount }}
+            </td>
+            <td class="text-muted small">{{ bill.method }}</td>
+            <td class="text-muted small">{{ bill.created_at|date:'Y-m-d H:i' }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5"><div class="empty-state">
+            <div>💳</div><p>暂无消费记录</p>
+          </div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="fw-bold mb-0">📊 定价规则（动态定价）</h5>
+  <div class="d-flex gap-2 flex-wrap">
+    <form class="d-flex gap-2" method="get">
+      <input type="text" class="form-control" style="width:220px" name="keyword" value="{{ keyword }}" placeholder="按规则名称搜索">
+      <button class="btn btn-primary">搜索</button>
+    </form>
+    <a class="btn btn-accent" href="{% url 'pricing:admin_pricing_create' %}">+ 新增规则</a>
+    <a class="btn btn-light-soft" href="{% url 'pricing:admin_settings' %}">⚙️ 平台参数</a>
+  </div>
+</div>
+
+<div class="alert alert-primary py-2 small mb-3">
+  💡 动态定价按「节假日/周末上浮、旺季调价、淡季促销、早鸟优惠、长租优惠」规则逐日计算租金，
+  上浮为正数（+20% 填 0.20），优惠为负数（-15% 填 -0.15）。
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>规则名称</th>
+          <th>类型</th>
+          <th>调整系数</th>
+          <th>触发说明</th>
+          <th>状态</th>
+          <th class="text-end">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rule in rules %}
+          <tr>
+            <td>{{ rule.id }}</td>
+            <td class="fw-bold">{{ rule.name }}</td>
+            <td>{{ rule.get_rule_type_display }}</td>
+            <td class="{% if rule.factor > 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+              {% if rule.factor > 0 %}+{% endif %}{{ rule.factor|floatformat:2 }}
+              <small class="text-muted fw-normal">（{% widthratio rule.factor 1 100 %}%）</small>
+            </td>
+            <td class="text-muted small">{{ rule.description|default:'—' }}</td>
+            <td>
+              {% if rule.enabled %}<span class="badge-status badge-available">启用</span>
+              {% else %}<span class="badge-status badge-cancelled">停用</span>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-light-soft" href="{% url 'pricing:admin_pricing_edit' rule.id %}">编辑</a>
+              <form class="d-inline" method="post" action="{% url 'pricing:admin_pricing_toggle' rule.id %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-soft">{{ rule.enabled|yesno:'停用,启用' }}</button>
+              </form>
+              <form class="d-inline" method="post" action="{% url 'pricing:admin_pricing_delete' rule.id %}"
+                    onsubmit="return confirm('确定删除规则「{{ rule.name }}」吗？删除后将按系统默认系数兜底。')">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div>📊</div>
+                <p>{% if keyword %}未找到匹配的定价规则{% else %}暂无定价规则，点击右上角新增{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if settings %}
+  <div class="card mt-4">
+    <div class="card-header">⚙️ 平台参数</div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>参数键</th><th>参数值</th><th>说明</th></tr></thead>
+        <tbody>
+          {% for setting in settings %}
+            <tr>
+              <td><code>{{ setting.key }}</code></td>
+              <td class="fw-bold">{{ setting.value }}</td>
+              <td class="text-muted small">{{ setting.description|default:'—' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

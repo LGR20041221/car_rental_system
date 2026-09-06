@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}首页 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- 轮播图 -->
+  <div id="homeCarousel" class="carousel slide hero-banner mb-4" data-bs-ride="carousel">
+    <div class="carousel-inner">
+      {% for vehicle in banners %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+          {% if vehicle.cover_image %}
+            <img src="{{ vehicle.cover_image.url }}" alt="{{ vehicle.model_name }}">
+          {% else %}
+            <img src="{% static 'images/car-placeholder.svg' %}" alt="{{ vehicle.model_name }}">
+          {% endif %}
+          <div class="hero-overlay">
+            <div class="container">
+              <h2 class="text-white fw-bold">{{ vehicle.brand.name }} {{ vehicle.model_name }}</h2>
+              <p class="text-white-50 mb-3">{{ vehicle.category.name }} · {{ vehicle.seats }}座 · {{ vehicle.fuel_text }}</p>
+              <div class="d-flex align-items-center gap-3">
+                <span class="text-white fs-4 fw-bold">¥{{ vehicle.daily_rent }}/天</span>
+                <a href="{% url 'vehicles:vehicle_detail' vehicle.id %}" class="btn btn-accent btn-lg">立即预订</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+    </button>
+  </div>
+
+  <!-- 搜索面板 -->
+  <div class="search-panel mb-5">
+    <form class="row g-3 align-items-end" method="get" action="{% url 'vehicles:vehicle_list' %}">
+      <div class="col-md-4">
+        <label class="form-label">关键词</label>
+        <input type="text" class="form-control" name="keyword" placeholder="搜索车型 / 品牌 / 车牌">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">品牌</label>
+        <select class="form-select" name="brand">
+          <option value="">全部品牌</option>
+          {% for brand in brands %}
+            <option value="{{ brand.id }}">{{ brand.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">车型</label>
+        <select class="form-select" name="category">
+          <option value="">全部分类</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">日租金上限</label>
+        <input type="number" class="form-control" name="price_max" placeholder="不限">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" type="submit">🔍 搜索车辆</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 热门推荐（销量 TOP10） -->
+  <div class="section-title">🔥 热门推荐</div>
+  {% if hot_vehicles %}
+    <div class="row g-4">
+      {% for vehicle in hot_vehicles %}
+        <div class="col-hot">
+          {% include 'partials/vehicle_card.html' %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div>🚗</div>
+      <p>暂无车辆数据，请先执行 <code>python manage.py generate_test_data</code> 生成测试数据</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

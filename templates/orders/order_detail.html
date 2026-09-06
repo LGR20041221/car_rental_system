@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}订单详情 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0">📋 订单详情</h5>
+    <a class="btn btn-light-soft" href="{% url 'orders:my_orders' %}">← 返回我的订单</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
+        <div>
+          <span class="fs-6 fw-bold">订单号：{{ order.order_no }}</span>
+          <span class="text-muted ms-2">{{ order.created_at|date:'Y-m-d H:i' }}</span>
+        </div>
+        <span class="badge-status badge-{{ order.status }}">{{ order.status_text }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card p-4 mb-4">
+        <h6 class="fw-bold mb-3">🚗 车辆信息</h6>
+        <div class="d-flex gap-3">
+          {% if order.vehicle.cover_image %}
+            <img src="{{ order.vehicle.cover_image.url }}" style="width:150px;height:100px;object-fit:cover;border-radius:10px">
+          {% endif %}
+          <div>
+            <div class="fw-bold">{{ order.vehicle.brand.name }} {{ order.vehicle.model_name }}</div>
+            <div class="text-muted small">{{ order.vehicle.plate_number }} · {{ order.vehicle.category.name }} · {{ order.vehicle.seats }}座</div>
+            <div class="text-accent fw-bold mt-1">¥{{ order.vehicle.daily_rent }}/天</div>
+          </div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <h6 class="fw-bold mb-3">📅 租期信息</h6>
+        <table class="table table-sm mb-0">
+          <tr><th style="width:120px">取车日期</th><td>{{ order.start_date }} <span class="text-muted small">（{{ order.pickup_location }}）</span></td></tr>
+          <tr><th>还车日期</th><td>{{ order.end_date }} <span class="text-muted small">（{{ order.return_location }}）</span></td></tr>
+          <tr><th>租期</th><td>{{ order.days }} 天</td></tr>
+          <tr><th>取车时间</th><td>{{ order.pickup_at|default:'—' }}</td></tr>
+          <tr><th>还车时间</th><td>{{ order.return_at|default:'—' }}</td></tr>
+          {% if order.extension_status != 'none' %}
+            <tr>
+              <th>续租状态</th>
+              <td>
+                <span class="badge-status badge-{% if order.extension_status == 'pending' %}pending{% elif order.extension_status == 'approved' %}available{% else %}cancelled{% endif %}">
+                  {{ order.extension_status_text }}
+                </span>
+                {% if order.extension_status == 'pending' %}续租至 {{ order.extend_to_date }}（增加 ¥{{ order.extend_rent }}）{% endif %}
+                {% if order.extension_status == 'approved' %}已延长至 {{ order.end_date }}{% endif %}
+              </td>
+            </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card p-4 mb-4">
+        <h6 class="fw-bold mb-3">💰 费用明细</h6>
+        <div class="d-flex justify-content-between py-1"><span class="text-muted">原价租金</span><span>¥{{ order.base_rent }}</span></div>
+        <div class="d-flex justify-content-between py-1"><span class="text-muted">动态调价后</span><span>¥{{ order.dynamic_rent }}</span></div>
+        {% if order.coupon_id %}
+          <div class="d-flex justify-content-between py-1"><span class="text-muted">优惠券（{{ order.coupon_name }}）</span><span class="text-success">-¥{{ order.coupon_discount }}</span></div>
+        {% endif %}
+        <div class="d-flex justify-content-between py-1"><span class="fw-bold">应付租金</span><span class="fw-bold text-accent">¥{{ order.payable_rent }}</span></div>
+        <div class="d-flex justify-content-between py-1 border-top"><span class="text-muted">押金</span><span>¥{{ order.deposit }}</span></div>
+        {% if order.fine > 0 %}
+          <div class="d-flex justify-content-between py-1"><span class="text-muted">违约金</span><span class="text-danger">¥{{ order.fine }}</span></div>
+        {% endif %}
+        <div class="d-flex justify-content-between py-2 border-top mt-1">
+          <span class="fw-bold">应付总额</span>
+          <span class="fw-bold fs-5 text-accent">¥{{ order.total_amount }}</span>
+        </div>
+        {% if order.deposit_returned %}
+          <div class="alert alert-success py-2 small mb-0 mt-2">✅ 押金已退还</div>
+        {% endif %}
+      </div>
+
+      {% if can_pay %}
+        <form method="post" action="{% url 'orders:order_pay' order.id %}">
+          {% csrf_token %}
+          <button class="btn btn-accent w-100 btn-lg" type="submit">💳 立即支付 ¥{{ order.total_amount }}</button>
+        </form>
+      {% endif %}
+      {% if can_cancel %}
+        <button class="btn btn-outline-danger w-100 mt-2" onclick="showCancelModal()">取消订单</button>
+      {% endif %}
+      {% if can_extend %}
+        <button class="btn btn-outline-primary w-100 mt-2" onclick="showExtendModal()">⏰ 申请续租</button>
+      {% endif %}
+      {% if can_confirm_return %}
+        <form method="post" action="{% url 'orders:order_confirm_return' order.id %}"
+              onsubmit="return confirm('确认已归还车辆？归还后将等待管理员核验。')">
+          {% csrf_token %}
+          <button class="btn btn-success w-100 mt-2">确认还车</button>
+        </form>
+      {% endif %}
+      {% if order.status == 'completed' and not order.review %}
+        <a class="btn btn-primary w-100 mt-2" href="{% url 'reviews:review_submit' order.id %}">⭐ 去评价</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 取消订单弹窗 -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'orders:order_cancel' order.id %}">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">取消订单</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="small text-muted">取消后订单状态将变为「已取消」，{% if order.status == 'paid' %}已支付的租金与押金将原路退回。{% endif %}</p>
+        <input type="text" class="form-control" name="reason" placeholder="取消原因（选填）">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light-soft" data-bs-dismiss="modal">再想想</button>
+        <button class="btn btn-danger">确认取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 续租弹窗 -->
+<div class="modal fade" id="extendModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'orders:order_extend' order.id %}">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">申请续租</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="small text-muted">当前还车日期为 <b>{{ order.end_date }}</b>，填写续租目标日期，提交后等待管理员审批。</p>
+        <input type="date" class="form-control" name="extend_to_date" min="{{ order.end_date|date:'Y-m-d' }}" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light-soft" data-bs-dismiss="modal">关闭</button>
+        <button class="btn btn-primary">提交申请</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+function showCancelModal() { new bootstrap.Modal(document.getElementById('cancelModal')).show(); }
+function showExtendModal() { new bootstrap.Modal(document.getElementById('extendModal')).show(); }
+</script>
+{% endblock %}

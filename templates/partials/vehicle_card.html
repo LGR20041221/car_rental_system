@@ -1,0 +1,36 @@
+{% load static %}
+<div class="card card-hover vehicle-card h-100">
+  <a href="{% url 'vehicles:vehicle_detail' vehicle.id %}">
+    {% if vehicle.cover_image %}
+      <img src="{{ vehicle.cover_image.url }}" class="car-thumb" alt="{{ vehicle.model_name }}">
+    {% else %}
+      <img src="{% static 'images/car-placeholder.svg' %}" class="car-thumb" alt="{{ vehicle.model_name }}">
+    {% endif %}
+  </a>
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-1">
+      <div>
+        <div class="fw-bold mb-1">
+          <a href="{% url 'vehicles:vehicle_detail' vehicle.id %}" class="text-dark">{{ vehicle.brand.name }} {{ vehicle.model_name }}</a>
+        </div>
+        <div class="text-muted small">
+          <span class="me-2">🧭 {{ vehicle.category.name }}</span>
+          <span class="me-2">💺 {{ vehicle.seats }}座</span>
+          <span>{{ vehicle.fuel_text }}</span>
+        </div>
+      </div>
+      {% if current_user %}
+        <button class="btn btn-sm fav-toggle {% if vehicle.is_favorited %}btn-accent{% else %}btn-light-soft{% endif %}"
+                data-vehicle-id="{{ vehicle.id }}" title="收藏/取消收藏">
+          <span class="fav-heart">{% if vehicle.is_favorited %}♥{% else %}♡{% endif %}</span>
+        </button>
+      {% endif %}
+    </div>
+    <div class="d-flex justify-content-between align-items-end mt-3">
+      <div class="price">
+        ¥{{ vehicle.daily_rent }}<small>/天</small>
+      </div>
+      <a href="{% url 'vehicles:vehicle_detail' vehicle.id %}" class="btn btn-primary btn-sm">立即预订</a>
+    </div>
+  </div>
+</div>

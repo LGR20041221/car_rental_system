@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}{{ announcement.title }} - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-body p-5">
+          <div class="text-center mb-4">
+            <h4 class="fw-bold">
+              {% if announcement.is_top %}<span class="badge bg-danger align-top">置顶</span>{% endif %}
+              {{ announcement.title }}
+            </h4>
+            <div class="text-muted small">
+              发布时间：{{ announcement.created_at|date:'Y-m-d H:i' }}
+              {% if announcement.publisher %} · 发布人：{{ announcement.publisher.username }}{% endif %}
+            </div>
+          </div>
+          <div class="content-body" style="line-height:1.9;white-space:pre-wrap;">{{ announcement.content }}</div>
+          <div class="text-center mt-4">
+            <a class="btn btn-light-soft" href="{% url 'notifications:announcement_list' %}">← 返回公告列表</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

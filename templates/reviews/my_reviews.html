@@ -1,0 +1,28 @@
+{% extends 'profile_base.html' %}
+{% block title %}我的评价 - {{ site_name }}{% endblock %}
+
+{% block profile_content %}
+<div class="card">
+  <div class="card-header">⭐ 我的评价</div>
+  <div class="card-body">
+    {% for review in page_obj %}
+      <div class="border-bottom py-3">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="fw-bold">{{ review.vehicle.brand.name }} {{ review.vehicle.model_name }}</span>
+          <span class="star-rating">
+            {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+          </span>
+        </div>
+        <p class="mb-1">{{ review.content }}</p>
+        <small class="text-muted">{{ review.created_at|date:'Y-m-d H:i' }} · 订单 {{ review.order.order_no }}</small>
+      </div>
+    {% empty %}
+      <div class="empty-state">
+        <div>⭐</div>
+        <p>暂无评价，完成订单后即可评价</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

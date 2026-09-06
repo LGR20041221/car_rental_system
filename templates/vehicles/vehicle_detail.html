@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ vehicle.brand.name }} {{ vehicle.model_name }} - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{% url 'core:home' %}">首页</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'vehicles:vehicle_list' %}">车辆列表</a></li>
+      <li class="breadcrumb-item active">{{ vehicle.model_name }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+    <!-- 图片区 -->
+    <div class="col-lg-7">
+      <div class="card p-3">
+        {% with gallery=images %}
+          {% if gallery %}
+            <img id="mainImage" src="{{ gallery.0.image.url }}" class="rounded car-thumb" style="height:360px;object-fit:cover" alt="{{ vehicle.model_name }}">
+            <div class="d-flex gap-2 mt-3 flex-wrap">
+              {% for img in gallery %}
+                <img src="{{ img.image.url }}" class="rounded border thumb-select" style="width:84px;height:60px;object-fit:cover;cursor:pointer"
+                     onclick="document.getElementById('mainImage').src=this.src">
+              {% endfor %}
+            </div>
+          {% elif vehicle.cover_image %}
+            <img src="{{ vehicle.cover_image.url }}" class="rounded car-thumb" style="height:360px;object-fit:cover" alt="{{ vehicle.model_name }}">
+          {% else %}
+            <img src="{% static 'images/car-placeholder.svg' %}" class="rounded car-thumb" style="height:360px;object-fit:cover" alt="{{ vehicle.model_name }}">
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+    <!-- 信息区 -->
+    <div class="col-lg-5">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h4 class="fw-bold mb-0">{{ vehicle.brand.name }} {{ vehicle.model_name }}</h4>
+          <span class="badge-status {% if vehicle.status == 'available' %}badge-available{% else %}badge-renting{% endif %}">
+            {{ vehicle.status_text }}
+          </span>
+        </div>
+        <div class="d-flex gap-2 mb-3">
+          {% if current_user %}
+            <button class="btn {% if is_favorited %}btn-accent{% else %}btn-outline-primary{% endif %} btn-sm fav-toggle"
+                    data-vehicle-id="{{ vehicle.id }}">
+              <span class="fav-heart">{% if is_favorited %}♥{% else %}♡{% endif %}</span> 收藏
+            </button>
+          {% endif %}
+          <span class="btn btn-light-soft btn-sm disabled">❤️ {{ favorite_count }} 人收藏</span>
+        </div>
+        <div class="mb-3">
+          <span class="price" style="font-size:2rem;">¥{{ vehicle.daily_rent }}</span><span class="text-muted">/天</span>
+        </div>
+        <div class="row g-2 text-center mb-3">
+          <div class="col-4"><div class="border rounded py-2"><small class="text-muted d-block">车型</small>{{ vehicle.category.name }}</div></div>
+          <div class="col-4"><div class="border rounded py-2"><small class="text-muted d-block">座位</small>{{ vehicle.seats }} 座</div></div>
+          <div class="col-4"><div class="border rounded py-2"><small class="text-muted d-block">燃油</small>{{ vehicle.fuel_text }}</div></div>
+        </div>
+        <table class="table table-sm mb-3">
+          <tr><th style="width:90px">车牌号</th><td>{{ vehicle.plate_number }}</td></tr>
+          <tr><th>颜色</th><td>{{ vehicle.color }}</td></tr>
+          <tr><th>排量</th><td>{{ vehicle.displacement|default:'—' }}</td></tr>
+          <tr><th>品牌</th><td>{{ vehicle.brand.name }}</td></tr>
+        </table>
+        {% if vehicle.description %}
+          <p class="text-muted small mb-3">{{ vehicle.description }}</p>
+        {% endif %}
+        <a href="{% url 'orders:order_create' %}?vehicle_id={{ vehicle.id }}" class="btn btn-accent btn-lg w-100">
+          立即预订 · ¥{{ vehicle.daily_rent }}/天
+        </a>
+        {% if current_user %}
+          <p class="text-muted small mt-2 mb-0 text-center">动态定价：节假日/旺季上浮，早鸟/长租有优惠</p>
+        {% else %}
+          <p class="text-muted small mt-2 mb-0 text-center"><a href="{% url 'users:login' %}">登录</a>后可下单预订</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 租期占用日历（近 30 天） -->
+  <div class="card mt-4 p-4">
+    <h6 class="fw-bold mb-3">📅 近 30 天可租状态</h6>
+    <div class="d-flex flex-wrap gap-2">
+      {% for day in occupied_dates %}
+        <span class="badge bg-light text-muted border px-2 py-1" title="占用">{{ day|date:'m/d' }}</span>
+      {% empty %}
+        <span class="text-muted small">近 30 天均可租</span>
+      {% endfor %}
+    </div>
+    <p class="text-muted small mt-2 mb-0">灰色标记为已占用日期，可提前避开车期冲突。</p>
+  </div>
+
+  <div class="row g-4 mt-1">
+    <!-- 评价区 -->
+    <div class="col-lg-7">
+      <div class="card p-4">
+        <h6 class="fw-bold mb-3">⭐ 用户评价 ({{ reviews.count }})</h6>
+        {% for review in reviews %}
+          <div class="border-bottom py-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="fw-bold"><span class="avatar-circle me-1" style="width:26px;height:26px;font-size:.7rem;">{{ review.user.username|slice:":1"|upper }}</span>{{ review.user.username }}</span>
+              <span class="star-rating">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}
+                {% endfor %}
+              </span>
+            </div>
+            <p class="mb-1">{{ review.content }}</p>
+            <small class="text-muted">{{ review.created_at|date:'Y-m-d' }}</small>
+          </div>
+        {% empty %}
+          <div class="text-muted text-center py-4">暂无评价，快来成为第一个评价的人吧</div>
+        {% endfor %}
+      </div>
+    </div>
+    <!-- 相似推荐 -->
+    <div class="col-lg-5">
+      <div class="card p-4">
+        <h6 class="fw-bold mb-3">🎯 相似推荐</h6>
+        {% for similar in similar_vehicles %}
+          <a href="{% url 'vehicles:vehicle_detail' similar.id %}" class="d-flex align-items-center gap-3 border-bottom py-2 text-decoration-none">
+            <div class="flex-grow-1">
+              <div class="fw-bold text-dark">{{ similar.brand.name }} {{ similar.model_name }}</div>
+              <small class="text-muted">{{ similar.category.name }} · {{ similar.seats }}座</small>
+            </div>
+            <div class="text-end">
+              <div class="text-accent fw-bold">¥{{ similar.daily_rent }}/天</div>
+            </div>
+          </a>
+        {% empty %}
+          <div class="text-muted text-center py-4">暂无相似车辆推荐</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

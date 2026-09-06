@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}系统公告 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="section-title">📢 系统公告</div>
+  <div class="card">
+    <div class="card-body">
+      <form class="d-flex gap-2 mb-3" method="get" style="max-width:420px">
+        <input type="text" class="form-control" name="keyword" value="{{ keyword }}" placeholder="按标题搜索公告">
+        <button class="btn btn-primary text-nowrap">搜索</button>
+      </form>
+      <ul class="list-group list-group-flush">
+        {% for announcement in page_obj %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'notifications:announcement_detail' announcement.id %}" class="fw-bold">
+              {% if announcement.is_top %}<span class="badge bg-danger me-1">置顶</span>{% endif %}
+              {{ announcement.title }}
+            </a>
+            <small class="text-muted">{{ announcement.created_at|date:'Y-m-d' }}</small>
+          </li>
+        {% empty %}
+          <li class="list-group-item"><div class="empty-state">
+            <div>📢</div><p>暂无公告</p>
+          </div></li>
+        {% endfor %}
+      </ul>
+      {% include 'partials/pagination.html' %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}车辆列表 - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="section-title">🚗 车辆列表 <span class="text-muted fs-6 fw-normal">共 {{ page_obj.paginator.count }} 辆可租车辆</span></div>
+
+  <!-- 顶部筛选栏（一排） -->
+  <div class="card p-3 mb-4">
+    <form method="get" class="d-flex flex-wrap align-items-end gap-3">
+      <div>
+        <label class="form-label mb-1 small">关键词</label>
+        <input type="text" class="form-control form-control-sm" style="width:160px" name="keyword" value="{{ filters.keyword }}" placeholder="车型 / 品牌 / 车牌">
+      </div>
+      <div>
+        <label class="form-label mb-1 small">车型分类</label>
+        <select class="form-select form-select-sm" style="width:110px" name="category">
+          <option value="">全部</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if filters.category == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label mb-1 small">品牌</label>
+        <select class="form-select form-select-sm" style="width:110px" name="brand">
+          <option value="">全部</option>
+          {% for brand in brands %}
+            <option value="{{ brand.id }}" {% if filters.brand == brand.id|stringformat:'s' %}selected{% endif %}>{{ brand.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label mb-1 small">燃油类型</label>
+        <select class="form-select form-select-sm" style="width:110px" name="fuel_type">
+          <option value="">全部</option>
+          {% for value, label in fuel_types %}
+            <option value="{{ value }}" {% if filters.fuel_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label mb-1 small">日租金区间(元)</label>
+        <div class="d-flex align-items-center gap-1">
+          <input type="number" class="form-control form-control-sm" style="width:90px" name="price_min" value="{{ filters.price_min }}" placeholder="最低">
+          <span>~</span>
+          <input type="number" class="form-control form-control-sm" style="width:90px" name="price_max" value="{{ filters.price_max }}" placeholder="最高">
+        </div>
+      </div>
+      <div>
+        <label class="form-label mb-1 small">排序</label>
+        <select class="form-select form-select-sm" style="width:140px" name="sort">
+          <option value="">默认排序</option>
+          <option value="price_asc" {% if filters.sort == 'price_asc' %}selected{% endif %}>价格从低到高</option>
+          <option value="price_desc" {% if filters.sort == 'price_desc' %}selected{% endif %}>价格从高到低</option>
+        </select>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" type="submit">🔍 筛选</button>
+        <a class="btn btn-light-soft btn-sm" href="{% url 'vehicles:vehicle_list' %}">重置</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- 车辆网格（一排 5 个） -->
+  {% if page_obj %}
+    <div class="row g-4">
+      {% for vehicle in page_obj %}
+        <div class="col-hot">
+          {% include 'partials/vehicle_card.html' %}
+        </div>
+      {% endfor %}
+    </div>
+    {% include 'partials/pagination.html' %}
+  {% else %}
+    <div class="card"><div class="empty-state">
+      <div>🚗</div>
+      <p>未找到符合条件的车辆，试试调整筛选条件</p>
+    </div></div>
+  {% endif %}
+</div>
+{% endblock %}

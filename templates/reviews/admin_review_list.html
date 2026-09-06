@@ -1,0 +1,71 @@
+{% extends 'admin_base.html' %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h5 class="fw-bold mb-0">📝 评价管理</h5>
+  <div class="btn-group btn-group-sm">
+    <a class="btn {% if not status %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'reviews:admin_review_list' %}">全部</a>
+    <a class="btn {% if status == 'visible' %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'reviews:admin_review_list' %}?status=visible">展示中</a>
+    <a class="btn {% if status == 'hidden' %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'reviews:admin_review_list' %}?status=hidden">已隐藏</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card p-3">
+      <h6 class="fw-bold mb-3">📊 车辆评分统计</h6>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>车辆</th><th>平均分</th><th>评价数</th></tr></thead>
+        <tbody>
+          {% for s in stats %}
+            <tr>
+              <td>{{ s.vehicle__brand__name }} {{ s.vehicle__model_name }}</td>
+              <td><span class="star-rating">★</span> {{ s.avg_rating|floatformat:1 }}</td>
+              <td>{{ s.review_count }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="text-muted text-center py-3">暂无评价</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr><th>用户</th><th>车辆</th><th>评分</th><th>内容</th><th>时间</th><th>状态</th><th class="text-end">操作</th></tr>
+          </thead>
+          <tbody>
+            {% for review in page_obj %}
+              <tr>
+                <td>{{ review.user.username }}</td>
+                <td>{{ review.vehicle.brand.name }} {{ review.vehicle.model_name }}</td>
+                <td><span class="star-rating">{% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span></td>
+                <td class="small text-muted" style="max-width:220px">{{ review.content|truncatechars:40 }}</td>
+                <td class="text-muted small">{{ review.created_at|date:'m-d' }}</td>
+                <td>
+                  {% if review.is_hidden %}<span class="badge-status badge-cancelled">已隐藏</span>
+                  {% else %}<span class="badge-status badge-available">展示中</span>{% endif %}
+                </td>
+                <td class="text-end">
+                  <form method="post" action="{% url 'reviews:admin_review_toggle' review.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm {% if review.is_hidden %}btn-success{% else %}btn-outline-danger{% endif %}">
+                      {{ review.is_hidden|yesno:'恢复展示,隐藏' }}
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7"><div class="empty-state">暂无评价</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include 'partials/pagination.html' %}
+    </div>
+  </div>
+</div>
+{% endblock %}
