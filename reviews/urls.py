@@ -12,6 +12,7 @@ urlpatterns = [
     # 用户端
     path('reviews/submit/<int:order_id>/', views.review_submit, name='review_submit'),
     path('profile/reviews/', views.my_reviews, name='my_reviews'),
+    path('reviews/<int:review_id>/delete/', views.review_delete, name='review_delete'),
     # 管理端
     path('admin/reviews/', views.admin_review_list, name='admin_review_list'),
     path('admin/reviews/<int:review_id>/toggle/', views.admin_review_toggle, name='admin_review_toggle'),

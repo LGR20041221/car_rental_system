@@ -13,14 +13,14 @@ class VehicleForm(forms.ModelForm):
         fields = [
             'brand', 'category', 'model_name', 'plate_number', 'color',
             'seats', 'displacement', 'fuel_type', 'daily_rent',
-            'status', 'cover_image', 'description',
+            'status', 'description',
         ]
         labels = {
             'brand': '品牌', 'category': '分类', 'model_name': '型号',
             'plate_number': '车牌号', 'color': '颜色', 'seats': '座位数',
             'displacement': '排量', 'fuel_type': '燃油类型',
             'daily_rent': '日租金(元)', 'status': '状态',
-            'cover_image': '封面图', 'description': '车辆描述',
+            'description': '车辆描述',
         }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
@@ -34,11 +34,11 @@ class VehicleForm(forms.ModelForm):
 
 
 class BrandForm(forms.ModelForm):
-    """品牌新增/编辑表单。"""
+    """品牌新增/编辑表单（不含 LOGO 上传）。"""
     class Meta:
         model = Brand
-        fields = ['name', 'logo', 'description']
-        labels = {'name': '品牌名称', 'logo': '品牌LOGO', 'description': '品牌简介'}
+        fields = ['name', 'description']
+        labels = {'name': '品牌名称', 'description': '品牌简介'}
         widgets = {'description': forms.Textarea(attrs={'rows': 3})}
 
 

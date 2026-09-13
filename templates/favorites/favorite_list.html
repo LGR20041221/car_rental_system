@@ -1,62 +1,107 @@
 {% extends 'profile_base.html' %}
 {% load static %}
-{% block title %}我的收藏 - {{ site_name }}{% endblock %}
+{% block title %}我的收藏{% endblock %}
 
 {% block profile_content %}
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span>❤️ 我的收藏</span>
-    <form class="d-flex gap-2" method="get">
-      <select class="form-select form-select-sm" style="width:130px" name="brand">
-        <option value="">全部品牌</option>
-        {% for b in brands %}
-          <option value="{{ b.id }}" {% if brand == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
-        {% endfor %}
-      </select>
-      <input type="number" class="form-control form-control-sm" style="width:100px" name="price_max" value="{{ price_max }}" placeholder="日租上限">
-      <button class="btn btn-sm btn-primary">筛选</button>
-    </form>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <form class="d-flex gap-2" method="get">
+        <select class="form-select form-select-sm" style="width:130px" name="brand">
+          <option value="">全部品牌</option>
+          {% for b in brands %}
+            <option value="{{ b.id }}" {% if brand == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" class="form-control form-control-sm" style="width:100px" name="price_max" value="{{ price_max }}" placeholder="日租上限">
+        <button class="btn btn-sm btn-primary">筛选</button>
+      </form>
+      {# 批量删除：位于筛选右侧 #}
+      <button class="btn btn-sm btn-outline-danger" type="button" id="btnBatchRemove">批量删除</button>
+    </div>
   </div>
   <div class="card-body">
-    <form method="post" action="{% url 'favorites:batch_remove' %}" id="favoriteForm">
-      {% csrf_token %}
-      {% if page_obj %}
-        <div class="row g-3">
-          {% for fav in page_obj %}
-            <div class="col-md-6">
-              <div class="card card-hover vehicle-card h-100">
-                <div class="card-body d-flex gap-3">
-                  {% if fav.vehicle.cover_image %}
-                    <img src="{{ fav.vehicle.cover_image.url }}" style="width:140px;height:96px;object-fit:cover;border-radius:10px">
+    {% if page_obj %}
+      <div class="row g-3" id="favGrid">
+        {% for fav in page_obj %}
+          <div class="col-lg-4">
+            {# 整卡可点击进入详情，卡片内的勾选框/删除按钮除外（见页尾脚本） #}
+            <div class="card card-hover vehicle-card h-100 fav-card"
+                 data-href="{% url 'vehicles:vehicle_detail' fav.vehicle.id %}">
+              <div class="position-relative">
+                {% with cover=fav.vehicle.images.all|first %}
+                  {% if cover %}
+                    <img src="{{ cover.image.url }}" class="car-thumb" alt="{{ fav.vehicle.model_name }}">
                   {% else %}
-                    <img src="{% static 'images/car-placeholder.svg' %}" style="width:140px;height:96px;object-fit:cover;border-radius:10px">
+                    <img src="{% static 'images/car-placeholder.svg' %}" class="car-thumb" alt="{{ fav.vehicle.model_name }}">
                   {% endif %}
-                  <div class="flex-grow-1">
-                    <a href="{% url 'vehicles:vehicle_detail' fav.vehicle.id %}" class="fw-bold text-dark">{{ fav.vehicle.brand.name }} {{ fav.vehicle.model_name }}</a>
-                    <div class="text-muted small my-1">{{ fav.vehicle.category.name }} · {{ fav.vehicle.seats }}座 · {{ fav.vehicle.fuel_text }}</div>
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span class="text-accent fw-bold">¥{{ fav.vehicle.daily_rent }}/天</span>
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="ids" value="{{ fav.id }}">
-                        <label class="form-check-label small">取消收藏</label>
-                      </div>
-                    </div>
-                  </div>
+                {% endwith %}
+                {# 左上角复选框：勾选后可批量删除 #}
+                <input class="form-check-input fav-check position-absolute" type="checkbox"
+                       name="ids" value="{{ fav.id }}" title="勾选后可批量删除"
+                       style="top:10px;left:10px;width:20px;height:20px;cursor:pointer">
+              </div>
+              <div class="card-body">
+                <div class="fw-bold mb-1">{{ fav.vehicle.brand.name }} {{ fav.vehicle.model_name }}</div>
+                <div class="text-muted small">
+                  {{ fav.vehicle.category.name }} · {{ fav.vehicle.seats }}座 · {{ fav.vehicle.fuel_text }}
+                </div>
+                <div class="d-flex justify-content-between align-items-center gap-2 mt-2">
+                  <span class="text-accent fw-bold">¥{{ fav.vehicle.daily_rent }}<small class="text-muted">/天</small></span>
+                  <form method="post" action="{% url 'favorites:batch_remove' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="ids" value="{{ fav.id }}">
+                    <button class="btn btn-sm btn-outline-danger" type="submit"
+                            onclick="return confirm('确定删除该收藏吗？')">删除</button>
+                  </form>
                 </div>
               </div>
             </div>
-          {% endfor %}
-        </div>
-        <button class="btn btn-outline-danger mt-3" type="submit">批量取消收藏</button>
-      {% else %}
-        <div class="empty-state">
-          <div>❤️</div>
-          <p>暂无收藏车辆，去挑选喜欢的车辆收藏吧</p>
-          <a class="btn btn-primary btn-sm" href="{% url 'vehicles:vehicle_list' %}">去选车</a>
-        </div>
-      {% endif %}
-    </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div>❤️</div>
+        <p>暂无收藏车辆，去挑选喜欢的车辆收藏吧</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'vehicles:vehicle_list' %}">去选车</a>
+      </div>
+    {% endif %}
   </div>
 </div>
 {% include 'partials/pagination.html' %}
+{% endblock %}
+
+{% block js %}
+<script>
+$(function () {
+  /* 点击卡片进入车辆详情页；勾选框、删除按钮等交互元素不触发跳转 */
+  $('#favGrid').on('click', '.fav-card', function (e) {
+    if ($(e.target).is('input, button, a, label, form')) return;
+    window.location.href = $(this).data('href');
+  });
+
+  /* 批量删除：收集勾选的收藏，二次确认后一次性提交 */
+  $('#btnBatchRemove').on('click', function () {
+    var ids = $('.fav-check:checked').map(function () { return this.value; }).get();
+    if (!ids.length) {
+      window.showToast('请先勾选要删除的收藏', 'error');
+      return;
+    }
+    if (!confirm('确定删除选中的 ' + ids.length + ' 辆收藏吗？')) return;
+    var $form = $('<form>', {
+      method: 'post', action: '{% url "favorites:batch_remove" %}', style: 'display:none'
+    });
+    $form.append($('<input>', {
+      type: 'hidden', name: 'csrfmiddlewaretoken',
+      value: $('input[name="csrfmiddlewaretoken"]').first().val()
+    }));
+    ids.forEach(function (id) {
+      $form.append($('<input>', { type: 'hidden', name: 'ids', value: id }));
+    });
+    $form.appendTo('body').submit();
+  });
+});
+</script>
 {% endblock %}

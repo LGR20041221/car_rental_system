@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}订单详情 - {{ site_name }}{% endblock %}
+{% load static %}
+{% block title %}订单详情{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -23,17 +24,26 @@
   <div class="row g-4">
     <div class="col-lg-7">
       <div class="card p-4 mb-4">
-        <h6 class="fw-bold mb-3">🚗 车辆信息</h6>
-        <div class="d-flex gap-3">
-          {% if order.vehicle.cover_image %}
-            <img src="{{ order.vehicle.cover_image.url }}" style="width:150px;height:100px;object-fit:cover;border-radius:10px">
-          {% endif %}
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">🚗 车辆信息</h6>
+          <a class="small" href="{% url 'vehicles:vehicle_detail' order.vehicle.id %}">查看车辆详情 →</a>
+        </div>
+        {# 整块车辆信息可点击，进入该车辆详情页 #}
+        <a class="d-flex gap-3 text-decoration-none text-dark vehicle-info-link"
+           href="{% url 'vehicles:vehicle_detail' order.vehicle.id %}">
+          {% with cover=order.vehicle.images.all|first %}
+            {% if cover %}
+              <img src="{{ cover.image.url }}" style="width:150px;height:100px;object-fit:cover;border-radius:10px" alt="{{ order.vehicle.model_name }}">
+            {% else %}
+              <img src="{% static 'images/car-placeholder.svg' %}" style="width:150px;height:100px;object-fit:cover;border-radius:10px" alt="{{ order.vehicle.model_name }}">
+            {% endif %}
+          {% endwith %}
           <div>
             <div class="fw-bold">{{ order.vehicle.brand.name }} {{ order.vehicle.model_name }}</div>
             <div class="text-muted small">{{ order.vehicle.plate_number }} · {{ order.vehicle.category.name }} · {{ order.vehicle.seats }}座</div>
             <div class="text-accent fw-bold mt-1">¥{{ order.vehicle.daily_rent }}/天</div>
           </div>
-        </div>
+        </a>
       </div>
       <div class="card p-4">
         <h6 class="fw-bold mb-3">📅 租期信息</h6>
@@ -100,10 +110,33 @@
           <button class="btn btn-success w-100 mt-2">确认还车</button>
         </form>
       {% endif %}
-      {% if order.status == 'completed' and not order.review %}
-        <a class="btn btn-primary w-100 mt-2" href="{% url 'reviews:review_submit' order.id %}">⭐ 去评价</a>
+      {# 已完成订单可评价；已评价过则按钮变为「追加评价」，可继续追加 #}
+      {% if order.status == 'completed' %}
+        <a class="btn btn-primary w-100 mt-2" href="{% url 'reviews:review_submit' order.id %}">
+          ⭐ {% if order_reviews %}追加评价{% else %}去评价{% endif %}
+        </a>
       {% endif %}
     </div>
+  </div>
+
+  <!-- 本单评价：同一订单可多次评价，全部列出 -->
+  <div class="card p-4 mt-4">
+    <h6 class="fw-bold mb-3">⭐ 本单评价（{{ order_reviews|length }} 条）</h6>
+    {% for review in order_reviews %}
+      <div class="border-bottom py-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="star-rating">
+            {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+          </span>
+          <small class="text-muted">{{ review.created_at|date:'Y-m-d H:i' }}</small>
+        </div>
+        <p class="mb-0">{{ review.content }}</p>
+      </div>
+    {% empty %}
+      <div class="text-muted small">
+        暂无评价{% if order.status == 'completed' %}，点击「去评价」发表你的用车体验{% endif %}
+      </div>
+    {% endfor %}
   </div>
 </div>
 

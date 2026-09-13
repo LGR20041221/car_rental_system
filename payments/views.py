@@ -1,17 +1,19 @@
 """
 支付应用视图：用户优惠券/账单，管理端优惠券/财务/退款。
 """
+import datetime
 import json
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.decorators import admin_required, login_required
 from payments import services as payment_services
 from payments.forms import CouponForm
 from payments.models import Coupon, Payment, UserCoupon
 from payments.services import claim_coupon, get_revenue_stats
+from users.decorators import admin_required
 
 
 # ==================== 用户端 ====================
@@ -19,20 +21,22 @@ from payments.services import claim_coupon, get_revenue_stats
 @login_required
 def coupon_list(request):
     """
-    我的优惠券：可用优惠券、历史（已使用）优惠券，以及可领取的平台优惠券。
+    我的优惠券：按状态（未使用/已使用/已失效）服务端筛选，并展示可领取的平台优惠券。
+    状态通过 ?status= 查询参数切换，与「我的订单」页筛选方式保持一致。
     """
-    import datetime
-    user = request.current_user
-    available = payment_services.get_user_valid_coupons(user)
-    used = UserCoupon.objects.filter(user=user, is_used=True).select_related('coupon').order_by('-used_at')
+    user = request.user
+    status = request.GET.get('status', '')
+    coupons = payment_services.get_user_coupons(user, status)
+    # 领券中心：未领取且在有效期内的平台券
     today = datetime.date.today()
-    claimed_ids = UserCoupon.objects.filter(user=user).values_list('coupon_id', flat=True)
+    claimed_ids = user.user_coupons.values_list('coupon_id', flat=True)
     claimable = Coupon.objects.filter(
         is_active=True, start_date__lte=today, end_date__gte=today
     ).exclude(id__in=claimed_ids).order_by('-created_at')
     return render(request, 'payments/coupon_list.html', {
-        'available': available,
-        'used': used,
+        'coupons': coupons,
+        'status': status,
+        'status_choices': UserCoupon.STATUS_CHOICES,
         'claimable': claimable,
     })
 
@@ -40,7 +44,7 @@ def coupon_list(request):
 @login_required
 def coupon_claim(request, coupon_id):
     """领取平台发放的优惠券。"""
-    success, message = claim_coupon(request.current_user, coupon_id)
+    success, message = claim_coupon(request.user, coupon_id)
     if success:
         messages.success(request, message)
     else:
@@ -51,7 +55,7 @@ def coupon_claim(request, coupon_id):
 @login_required
 def bill_list(request):
     """账单查询：查看历史消费明细（支付流水）。"""
-    bills = payment_services.get_user_bills(request.current_user)
+    bills = payment_services.get_user_bills(request.user)
     paginator = Paginator(bills, 15)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'payments/bill_list.html', {'page_obj': page_obj})
@@ -88,9 +92,7 @@ def admin_coupon_create(request):
         messages.error(request, '创建失败，请检查填写信息')
     else:
         form = CouponForm()
-    return render(request, 'payments/admin_coupon_form.html', {
-        'form': form, 'title': '新增优惠券',
-    })
+    return render(request, 'payments/admin_coupon_form.html', {'form': form})
 
 
 @admin_required
@@ -107,7 +109,7 @@ def admin_coupon_edit(request, coupon_id):
     else:
         form = CouponForm(instance=coupon)
     return render(request, 'payments/admin_coupon_form.html', {
-        'form': form, 'title': '编辑优惠券', 'coupon': coupon,
+        'form': form, 'coupon': coupon,
     })
 
 

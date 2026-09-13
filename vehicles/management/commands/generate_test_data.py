@@ -208,16 +208,14 @@ class Command(BaseCommand):
                 status=random.choices(['available', 'available', 'available', 'renting'], weights=[3, 3, 3, 1])[0],
                 description=f'{brand.name} {model_name}，{color}外观，适合商务出行与家庭用车。',
             )
-            # 封面图 + 2 张角度图
+            # 3 张角度图，第一张标记为封面（详情页主图）
             base_color = (random.randint(40, 90), random.randint(60, 120), random.randint(140, 210))
-            cover = _placeholder_image(800, 500, base_color)
-            # FieldFile.save() 会自动拼接 upload_to，这里只传文件名
-            vehicle.cover_image.save(f'car_{vehicle.id}_cover.png', cover, save=True)
             for idx in range(3):
                 img_file = _placeholder_image(800, 500, base_color)
                 VehicleImage.objects.create(
                     vehicle=vehicle,
                     image=img_file,
+                    is_cover=(idx == 0),
                     sort_order=idx,
                 )
             vehicles.append(vehicle)
@@ -288,7 +286,6 @@ class Command(BaseCommand):
             if status == 'overdue':
                 end = today - datetime.timedelta(days=random.randint(1, 5))
                 start = end - datetime.timedelta(days=random.randint(3, 12))
-                days = (today - end).days
                 return start, end, status, True, 0
             # abnormal
             start = today - datetime.timedelta(days=random.randint(3, 15))
@@ -330,27 +327,17 @@ class Command(BaseCommand):
             if status == 'completed':
                 order.paid_at = order.created_at
                 order.pickup_at = order.created_at + datetime.timedelta(hours=2)
-                order.return_at = timezone.make_aware(
-                    datetime.datetime.combine(end, datetime.time(18, 0))
-                )
+                # USE_TZ=False：直接使用本地时间（naive datetime）存库
+                order.return_at = datetime.datetime.combine(end, datetime.time(18, 0))
                 order.completed_at = order.return_at + datetime.timedelta(hours=2)
                 order.deposit_returned = True
             elif status == 'paid':
                 order.paid_at = order.created_at
             elif status in ['renting', 'to_return', 'overdue']:
                 order.paid_at = order.created_at
-                order.pickup_at = timezone.make_aware(
-                    datetime.datetime.combine(start, datetime.time(10, 0))
-                )
+                order.pickup_at = datetime.datetime.combine(start, datetime.time(10, 0))
                 if status == 'to_return':
-                    order.return_at = timezone.make_aware(
-                        datetime.datetime.combine(today, datetime.time(18, 0))
-                    )
-            elif status == 'overdue':
-                order.paid_at = order.created_at
-                order.pickup_at = timezone.make_aware(
-                    datetime.datetime.combine(start, datetime.time(10, 0))
-                )
+                    order.return_at = datetime.datetime.combine(today, datetime.time(18, 0))
             order.save()
             # 支付流水
             if status in ['paid', 'renting', 'to_return', 'completed', 'overdue', 'abnormal']:
@@ -406,7 +393,7 @@ class Command(BaseCommand):
         """为部分已完成订单生成评价。"""
         completed = [o for o in orders if o.status == 'completed']
         for order in random.sample(completed, min(40, len(completed))):
-            if hasattr(order, 'review'):
+            if order.reviews.exists():
                 continue
             Review.objects.create(
                 order=order, user=order.user, vehicle=order.vehicle,

@@ -1,12 +1,14 @@
 """
-车辆服务层：前台车辆筛选与占用日期查询。
+车辆服务层：前台车辆筛选、占用日期查询与推荐服务。
 
-车辆列表页与详情页可展示已占用日期，辅助用户提前避开车期冲突。
+- 前台筛选/占用日期：车辆列表页与详情页展示，辅助用户避开车期冲突
+- 推荐服务（智能模块）：首页热门推荐按已完成订单数降序，相似车辆按品牌/分类推荐
 """
 import datetime
 
-from django.db.models import Q
+from django.db.models import Count, Q
 
+from favorites.models import Favorite
 from vehicles.models import Vehicle
 
 
@@ -16,7 +18,10 @@ def get_vehicle_list(params):
 
     支持关键词、分类、品牌、燃油类型、价格区间筛选与多种排序方式。
     """
-    qs = Vehicle.objects.filter(status='available').select_related('brand', 'category')
+    # prefetch images：模板取首张图作缩略图，避免逐车查询
+    qs = Vehicle.objects.filter(status='available').select_related(
+        'brand', 'category'
+    ).prefetch_related('images')
     keyword = (params.get('keyword') or '').strip()
     if keyword:
         qs = qs.filter(
@@ -70,3 +75,80 @@ def get_occupied_dates(vehicle, start=None, end=None):
             occupied.add(day)
             day += datetime.timedelta(days=1)
     return occupied
+
+
+# ==================== 推荐服务（智能模块） ====================
+
+def get_hot_vehicles(limit=10):
+    """
+    获取首页热门推荐车辆：按已完成订单数降序取前 limit 辆（每行 5 个，共 2 行）。
+    已完成订单数相同的，按收藏数与主键降序作为兜底排序。
+    """
+    return (
+        Vehicle.objects.filter(status='available')
+        .select_related('brand', 'category')
+        .prefetch_related('images')
+        .annotate(
+            sales=Count('orders', filter=Q(orders__status='completed')),
+            fav_count=Count('favorites'),
+        )
+        .order_by('-sales', '-fav_count', '-pk')[:limit]
+    )
+
+
+def get_banner_vehicles(limit=3):
+    """获取首页轮播展示车辆（已完成订单数 TOP3，畅销车优先上轮播）。"""
+    return get_hot_vehicles(limit=limit)
+
+
+def mark_favorite_status(vehicles, user):
+    """
+    为车辆列表标记当前用户的收藏状态（is_favorited），供模板展示。
+    """
+    if user is None or not getattr(user, 'is_authenticated', False) or not vehicles:
+        for v in vehicles:
+            v.is_favorited = False
+        return vehicles
+    ids = set(
+        Favorite.objects.filter(
+            user=user, vehicle_id__in=[v.id for v in vehicles]
+        ).values_list('vehicle_id', flat=True)
+    )
+    for v in vehicles:
+        v.is_favorited = v.id in ids
+    return vehicles
+
+
+def get_similar_vehicles(vehicle, limit=5):
+    """
+    获取与指定车辆相似的其他车辆：
+    1. 同品牌车辆按收藏数降序，排除当前车辆，最多 limit 辆；
+    2. 数量不足时，优先补充同分类的其他品牌车辆；
+    3. 仍不足时补充其余可租车辆。
+    """
+    result = list(
+        Vehicle.objects.filter(brand=vehicle.brand, status='available')
+        .exclude(pk=vehicle.pk)
+        .annotate(fav_count=Count('favorites'))
+        .order_by('-fav_count', '-pk')[:limit]
+    )
+    if len(result) < limit:
+        exclude_ids = [v.pk for v in result] + [vehicle.pk]
+        # 同分类的其他品牌优先
+        same_cat = list(
+            Vehicle.objects.filter(category=vehicle.category, status='available')
+            .exclude(pk__in=exclude_ids)
+            .annotate(fav_count=Count('favorites'))
+            .order_by('-fav_count', '-pk')[:limit - len(result)]
+        )
+        result.extend(same_cat)
+        exclude_ids = [v.pk for v in result] + [vehicle.pk]
+        if len(result) < limit:
+            others = list(
+                Vehicle.objects.filter(status='available')
+                .exclude(pk__in=exclude_ids)
+                .annotate(fav_count=Count('favorites'))
+                .order_by('-fav_count', '-pk')[:limit - len(result)]
+            )
+            result.extend(others)
+    return result[:limit]

@@ -2,16 +2,16 @@
 定价应用视图：价格预览接口 + 管理端定价规则/系统参数配置。
 """
 import datetime
-import json
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.decorators import admin_required, login_required
-from pricing.forms import PriceRuleForm, SystemSettingForm
+from pricing.forms import PriceRuleForm
 from pricing.models import PriceRule, SystemSetting
 from pricing.services import calculate_price, get_deposit, get_setting
+from users.decorators import admin_required
 from vehicles.models import Vehicle
 
 
@@ -99,7 +99,7 @@ def admin_pricing_create(request):
         form = PriceRuleForm()
         form.fields['rule_type'].choices = available
     return render(request, 'pricing/admin_pricing_form.html', {
-        'form': form, 'title': '新增规则', 'rule': None,
+        'form': form, 'rule': None,
     })
 
 
@@ -119,7 +119,7 @@ def admin_pricing_edit(request, rule_id):
         form = PriceRuleForm(instance=rule)
         form.fields['rule_type'].disabled = True
     return render(request, 'pricing/admin_pricing_form.html', {
-        'form': form, 'title': '编辑规则', 'rule': rule,
+        'form': form, 'rule': rule,
     })
 
 

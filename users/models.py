@@ -24,3 +24,12 @@ class User(AbstractUser):
     def __str__(self):
         """返回用户可读标识。"""
         return f'{self.username}({self.phone})'
+
+    @property
+    def unread_count(self):
+        """未读通知数，供模板 {{ user.unread_count }} 使用。"""
+        if not self.id:
+            return 0
+        # 延迟导入，避免 users 与 notifications 循环依赖
+        from notifications.models import Notification
+        return Notification.objects.filter(user=self, is_read=False).count()

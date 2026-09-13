@@ -1,5 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}{{ title|default:'管理后台' }} - {{ site_name }}{% endblock %}
+{% block title %}管理后台{% endblock %}
+{% block footer %}
+<footer class="footer-site">
+  <div class="container">
+    © 2026 汽车租赁管理后台 · 基于 Django 4.x + Bootstrap 5 + ECharts 构建
+  </div>
+</footer>
+{% endblock %}
+
+{# 管理端精简导航栏：仅品牌 + 用户下拉（退出登录），不带用户端导航与通知铃铛 #}
+{% block navbar %}
+<nav class="navbar navbar-expand-lg navbar-site sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'dashboard:admin_dashboard' %}">
+      <span class="brand-badge">🚗</span>
+      汽车租赁<span class="text-accent">管理后台</span>
+    </a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto align-items-center">
+        {% if user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle user-chip" href="#" data-bs-toggle="dropdown">
+              <span class="avatar-circle" style="width:32px;height:32px;font-size:.85rem;">
+                {{ user.username|slice:":1"|upper }}
+              </span>
+              {{ user.username }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{% url 'users:logout' %}">↪ 退出登录</a></li>
+            </ul>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="admin-body d-flex">
@@ -20,9 +56,15 @@
     <a class="side-link {% if '/admin/users/' in request.path %}active{% endif %}" href="{% url 'users:admin_user_list' %}">
       👥 用户管理
     </a>
-    <a class="side-link {% if '/admin/vehicles/' in request.path %}active{% endif %}" href="{% url 'vehicles:admin_vehicle_list' %}">
-      🚗 车辆管理
-    </a>
+    <!-- 车辆管理（子菜单：车辆 / 品牌 / 分类） -->
+    <div class="side-link {% if '/admin/vehicles/' in request.path %}active{% endif %}" data-bs-toggle="collapse" data-bs-target="#sideVehicle">
+      🚗 车辆管理 <span class="ms-auto">▾</span>
+    </div>
+    <div class="collapse side-sub {% if '/admin/vehicles/' in request.path %}show{% endif %}" id="sideVehicle">
+      <a class="side-link {% if '/admin/vehicles/' in request.path and '/brands/' not in request.path and '/categories/' not in request.path %}active{% endif %}" href="{% url 'vehicles:admin_vehicle_list' %}">车辆管理</a>
+      <a class="side-link {% if '/admin/vehicles/brands/' in request.path %}active{% endif %}" href="{% url 'vehicles:admin_brand_list' %}">品牌管理</a>
+      <a class="side-link {% if '/admin/vehicles/categories/' in request.path %}active{% endif %}" href="{% url 'vehicles:admin_category_list' %}">分类管理</a>
+    </div>
     <a class="side-link {% if '/admin/orders/' in request.path %}active{% endif %}" href="{% url 'orders:admin_order_list' %}">
       📋 订单管理
     </a>
@@ -57,8 +99,6 @@
     <a class="side-link {% if '/admin/settings/' in request.path %}active{% endif %}" href="{% url 'pricing:admin_settings' %}">
       ⚙️ 系统设置
     </a>
-    <div class="side-title mt-2">回到前台</div>
-    <a class="side-link" href="{% url 'core:home' %}">🏠 返回用户端</a>
   </aside>
 
   <!-- 主内容区 -->

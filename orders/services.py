@@ -118,7 +118,7 @@ def create_order(user, vehicle, start_date, end_date, pickup_location, return_lo
         base_rent=amounts['base_rent'],
         dynamic_rent=amounts['dynamic_rent'],
         coupon_id=coupon.id if coupon else None,
-        coupon_name=coupon.name if coupon else '',
+        coupon_name=coupon.coupon.name if coupon else '',
         coupon_discount=amounts['coupon_discount'],
         payable_rent=amounts['payable_rent'],
         deposit=amounts['deposit'],
@@ -143,7 +143,9 @@ def process_order_statuses():
     from pricing.services import get_fine, get_setting
 
     now = timezone.now()
-    today = timezone.localdate()
+    # USE_TZ=False 下 timezone.now() 返回 naive 本地时间，直接取日期；
+    # 不可用 timezone.localdate()（对 naive datetime 会抛 ValueError）。
+    today = now.date()
     # 1. 待支付超时自动取消
     minutes = int(get_setting('auto_cancel_minutes'))
     threshold = now - datetime.timedelta(minutes=minutes)

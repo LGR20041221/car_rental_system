@@ -91,7 +91,8 @@ def main():
     end = (datetime.date.today() + datetime.timedelta(days=5)).isoformat()
     resp = c.get('/price-preview/', {'vehicle_id': vid, 'start_date': start, 'end_date': end})
     check('价格预览', resp.status_code == 200 and resp.json().get('success'))
-    # 收藏
+    # 收藏：先清除可能已存在的收藏，保证「首次切换=收藏」的断言不受随机测试数据影响
+    Favorite.objects.filter(user__username='user01', vehicle_id=vid).delete()
     resp = c.post('/favorites/toggle/', {'vehicle_id': vid})
     check('收藏车辆', resp.status_code == 200 and resp.json().get('is_favorited'))
     check('收藏记录', Favorite.objects.filter(user__username='user01', vehicle_id=vid).exists())

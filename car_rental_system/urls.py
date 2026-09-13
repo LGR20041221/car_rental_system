@@ -9,8 +9,7 @@ from django.conf.urls.static import static
 from django.urls import include, path
 
 urlpatterns = [
-    # 用户端
-    path('', include('core.urls')),
+    # 用户端（首页路由由 vehicles.urls 的 path('', views.home, name='home') 提供）
     path('', include('users.urls')),
     path('', include('vehicles.urls')),
     path('', include('orders.urls')),

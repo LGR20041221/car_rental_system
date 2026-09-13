@@ -2,12 +2,13 @@
 收藏应用视图：收藏/取消收藏、我的收藏、批量取消、管理端收藏统计。
 """
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.decorators import admin_required, login_required
 from favorites.models import Favorite
+from users.decorators import admin_required
 from vehicles.models import Vehicle
 
 
@@ -20,13 +21,13 @@ def favorite_toggle(request):
         return JsonResponse({'success': False, 'message': '请求方式错误'}, status=405)
     vehicle_id = request.POST.get('vehicle_id')
     vehicle = get_object_or_404(Vehicle, pk=vehicle_id)
-    favorite = Favorite.objects.filter(user=request.current_user, vehicle=vehicle).first()
+    favorite = Favorite.objects.filter(user=request.user, vehicle=vehicle).first()
     if favorite:
         favorite.delete()
         is_favorited = False
         message = '已取消收藏'
     else:
-        Favorite.objects.create(user=request.current_user, vehicle=vehicle)
+        Favorite.objects.create(user=request.user, vehicle=vehicle)
         is_favorited = True
         message = '收藏成功'
     return JsonResponse({
@@ -42,11 +43,13 @@ def favorite_list(request):
     """
     我的收藏：支持按品牌、价格区间筛选，支持批量取消收藏。
     """
-    user = request.current_user
+    user = request.user
     brand = request.GET.get('brand', '')
     price_min = request.GET.get('price_min', '')
     price_max = request.GET.get('price_max', '')
-    qs = Favorite.objects.filter(user=user).select_related('vehicle__brand', 'vehicle__category').order_by('-created_at')
+    qs = Favorite.objects.filter(user=user).select_related(
+        'vehicle__brand', 'vehicle__category'
+    ).prefetch_related('vehicle__images').order_by('-created_at')
     if brand:
         qs = qs.filter(vehicle__brand_id=brand)
     if price_min:
@@ -70,7 +73,7 @@ def favorite_batch_remove(request):
     """批量取消收藏（POST 传入多个 favorite_id）。"""
     ids = request.POST.getlist('ids')
     if ids:
-        Favorite.objects.filter(user=request.current_user, id__in=ids).delete()
+        Favorite.objects.filter(user=request.user, id__in=ids).delete()
         messages.success(request, f'已取消 {len(ids)} 辆收藏车辆')
     return redirect('favorites:list')
 

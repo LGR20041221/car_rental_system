@@ -9,7 +9,6 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.db.models import Sum
 
-from core.datetime_utils import day_end, day_start
 from payments.models import Coupon, Payment, UserCoupon
 
 
@@ -46,6 +45,27 @@ def get_user_valid_coupons(user):
         coupon__start_date__lte=today,
         coupon__end_date__gte=today,
     ).select_related('coupon').order_by('-claimed_at')
+
+
+def get_user_coupons(user, status=''):
+    """
+    按状态返回用户优惠券 queryset（供「我的优惠券」状态按钮组筛选）。
+    status 为空表示全部；status 取值见 UserCoupon.STATUS_CHOICES。
+    注意：UserCoupon.status 是 @property，不能用于 ORM filter，故此处用底层字段条件。
+    """
+    today = datetime.date.today()
+    base = UserCoupon.objects.filter(user=user).select_related('coupon')
+    if status == 'unused':
+        return base.filter(
+            is_used=False, coupon__end_date__gte=today
+        ).order_by('-claimed_at')
+    if status == 'used':
+        return base.filter(is_used=True).order_by('-used_at')
+    if status == 'expired':
+        return base.filter(
+            is_used=False, coupon__end_date__lt=today
+        ).order_by('-claimed_at')
+    return base.order_by('-claimed_at')
 
 
 def get_user_coupon_by_id(user, coupon_id):
@@ -123,20 +143,20 @@ def get_revenue_stats(days=14):
     """
     today = datetime.date.today()
     start = today - datetime.timedelta(days=days - 1)
-    payments = Payment.objects.filter(created_at__gte=day_start(start))
+    payments = Payment.objects.filter(created_at__date__gte=start)
 
     # 每日收入趋势
     daily = {}
     for offset in range(days):
         day = start + datetime.timedelta(days=offset)
         rents = payments.filter(
-            created_at__gte=day_start(day), created_at__lt=day_end(day), payment_type='rent'
+            created_at__date=day, payment_type='rent'
         ).aggregate(s=Sum('amount'))['s'] or 0
         fines = payments.filter(
-            created_at__gte=day_start(day), created_at__lt=day_end(day), payment_type='fine'
+            created_at__date=day, payment_type='fine'
         ).aggregate(s=Sum('amount'))['s'] or 0
         refunds = payments.filter(
-            created_at__gte=day_start(day), created_at__lt=day_end(day), payment_type='rent_refund'
+            created_at__date=day, payment_type='rent_refund'
         ).aggregate(s=Sum('amount'))['s'] or 0
         daily[day.isoformat()] = float(rents + fines - refunds)
 

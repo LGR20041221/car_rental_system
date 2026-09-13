@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}用户注册 - {{ site_name }}{% endblock %}
+{% block title %}用户注册{% endblock %}
+{% block navbar %}{% endblock %}   {# 认证页无顶部导航栏 #}
+{% block footer %}{% endblock %}   {# 认证页无页脚，卡片整屏垂直居中 #}
 
 {% block content %}
 <div class="auth-wrap">
@@ -12,40 +14,38 @@
         </div>
         <form method="post" novalidate>
           {% csrf_token %}
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">用户名</label>
-              {{ form.username }}
-              {% if form.username.errors %}<div class="invalid-feedback d-block">{{ form.username.errors|striptags }}</div>{% endif %}
+          <div class="mb-3">
+            <label class="form-label">用户名</label>
+            {{ form.username }}
+            {% if form.username.errors %}<div class="invalid-feedback d-block">{{ form.username.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">手机号</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}<div class="invalid-feedback d-block">{{ form.phone.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">邮箱</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">验证码</label>
+            <div class="d-flex gap-2">
+              {{ form.code }}
+              <button type="button" class="btn btn-outline-primary text-nowrap btn-send-code">发送验证码</button>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">手机号</label>
-              {{ form.phone }}
-              {% if form.phone.errors %}<div class="invalid-feedback d-block">{{ form.phone.errors|striptags }}</div>{% endif %}
-            </div>
-            <div class="col-12">
-              <label class="form-label">邮箱</label>
-              {{ form.email }}
-              {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors|striptags }}</div>{% endif %}
-            </div>
-            <div class="col-12">
-              <label class="form-label">验证码</label>
-              <div class="d-flex gap-2">
-                {{ form.code }}
-                <button type="button" class="btn btn-outline-primary text-nowrap btn-send-code">发送验证码</button>
-              </div>
-              {% if form.code.errors %}<div class="invalid-feedback d-block">{{ form.code.errors|striptags }}</div>{% endif %}
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">密码</label>
-              {{ form.password }}
-              {% if form.password.errors %}<div class="invalid-feedback d-block">{{ form.password.errors|striptags }}</div>{% endif %}
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">确认密码</label>
-              {{ form.confirm_password }}
-              {% if form.confirm_password.errors %}<div class="invalid-feedback d-block">{{ form.confirm_password.errors|striptags }}</div>{% endif %}
-            </div>
+            {% if form.code.errors %}<div class="invalid-feedback d-block">{{ form.code.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">密码</label>
+            {{ form.password }}
+            {% if form.password.errors %}<div class="invalid-feedback d-block">{{ form.password.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">确认密码</label>
+            {{ form.confirm_password }}
+            {% if form.confirm_password.errors %}<div class="invalid-feedback d-block">{{ form.confirm_password.errors|striptags }}</div>{% endif %}
           </div>
           <button class="btn btn-primary w-100 py-2 mt-4" type="submit">注 册</button>
         </form>

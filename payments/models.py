@@ -70,6 +70,11 @@ class Coupon(models.Model):
 
 class UserCoupon(models.Model):
     """用户领取的优惠券。"""
+    STATUS_CHOICES = [
+        ('unused', '未使用'),
+        ('used', '已使用'),
+        ('expired', '已失效'),
+    ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_coupons', verbose_name='用户')
     coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name='user_coupons', verbose_name='优惠券模板')
     order_id = models.IntegerField('使用订单ID', null=True, blank=True)
@@ -84,6 +89,23 @@ class UserCoupon(models.Model):
 
     def __str__(self):
         return f'{self.user.username}-{self.coupon.name}'
+
+    @property
+    def status(self):
+        """
+        实时计算状态：已使用优先，否则按有效期判断。
+        「已失效」是时间派生状态（过了 end_date 自动失效），故不落库，永远新鲜。
+        """
+        if self.is_used:
+            return 'used'
+        if self.coupon.end_date < datetime.date.today():
+            return 'expired'
+        return 'unused'
+
+    @property
+    def status_text(self):
+        """状态中文文案（供模板 badge 展示）。"""
+        return dict(self.STATUS_CHOICES).get(self.status, self.status)
 
 
 class Payment(models.Model):

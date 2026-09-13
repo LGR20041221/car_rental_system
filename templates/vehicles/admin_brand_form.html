@@ -1,23 +1,20 @@
 {% extends 'admin_base.html' %}
+{% block title %}{% if brand %}编辑品牌{% else %}新增品牌{% endif %}{% endblock %}
 
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">{{ title }}</h5>
+  <h5 class="fw-bold mb-0">{% if brand %}编辑品牌{% else %}新增品牌{% endif %}</h5>
   <a class="btn btn-light-soft" href="{% url 'vehicles:admin_brand_list' %}">← 返回列表</a>
 </div>
 
 <div class="card">
   <div class="card-body p-4">
-    <form method="post" enctype="multipart/form-data" class="form-card" novalidate>
+    <form method="post" class="form-card" novalidate>
       {% csrf_token %}
       <div class="mb-3">
         <label class="form-label">品牌名称</label>
         {{ form.name }}
         {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors|striptags }}</div>{% endif %}
-      </div>
-      <div class="mb-3">
-        <label class="form-label">品牌 LOGO</label>
-        {{ form.logo }}
       </div>
       <div class="mb-3">
         <label class="form-label">品牌简介</label>

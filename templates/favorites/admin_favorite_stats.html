@@ -1,4 +1,7 @@
 {% extends 'admin_base.html' %}
+{% load static %}
+{% block title %}收藏统计{% endblock %}
+{% block echarts %}<script src="{% static 'lib/echarts.min.js' %}"></script>{% endblock %}
 
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">

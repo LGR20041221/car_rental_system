@@ -19,3 +19,6 @@ db.sqlite3
 # 系统
 .DS_Store
 Thumbs.db
+
+# 开发过程文档（不上传）
+修改方案*.txt

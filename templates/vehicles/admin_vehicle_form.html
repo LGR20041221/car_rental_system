@@ -1,75 +1,285 @@
 {% extends 'admin_base.html' %}
+{% block title %}{% if vehicle %}编辑车辆{% else %}新增车辆{% endif %}{% endblock %}
 
 {% block admin_content %}
+{# 新增与编辑共用同一界面，唯一区别：编辑时表单按该车辆已有数据自动填充 #}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">{{ title }}</h5>
+  <h5 class="fw-bold mb-0">{% if vehicle %}编辑车辆{% else %}新增车辆{% endif %}</h5>
   <a class="btn btn-light-soft" href="{% url 'vehicles:admin_vehicle_list' %}">← 返回列表</a>
 </div>
 
 <div class="card">
   <div class="card-body p-4">
-    <form method="post" enctype="multipart/form-data" class="form-card" novalidate>
+    <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">品牌</label>
-          {{ form.brand }}
-          {% if form.brand.errors %}<div class="invalid-feedback d-block">{{ form.brand.errors|striptags }}</div>{% endif %}
+      {# 左右 4:6 —— 左侧车辆信息，右侧车辆图片与选择图片区域 #}
+      <div class="vehicle-split">
+        <!-- 左：车辆信息 -->
+        <div class="split-left">
+          <div class="split-title">车辆信息</div>
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">品牌</label>
+              {{ form.brand }}
+              {% if form.brand.errors %}<div class="invalid-feedback d-block">{{ form.brand.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-6">
+              <label class="form-label">分类</label>
+              {{ form.category }}
+              {% if form.category.errors %}<div class="invalid-feedback d-block">{{ form.category.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-6">
+              <label class="form-label">型号</label>
+              {{ form.model_name }}
+              {% if form.model_name.errors %}<div class="invalid-feedback d-block">{{ form.model_name.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-6">
+              <label class="form-label">车牌号</label>
+              {{ form.plate_number }}
+              {% if form.plate_number.errors %}<div class="invalid-feedback d-block">{{ form.plate_number.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-6">
+              <label class="form-label">颜色</label>
+              {{ form.color }}
+            </div>
+            <div class="col-6">
+              <label class="form-label">座位数</label>
+              {{ form.seats }}
+            </div>
+            <div class="col-6">
+              <label class="form-label">排量</label>
+              {{ form.displacement }}
+            </div>
+            <div class="col-6">
+              <label class="form-label">燃油类型</label>
+              {{ form.fuel_type }}
+            </div>
+            <div class="col-6">
+              <label class="form-label">日租金(元)</label>
+              {{ form.daily_rent }}
+              {% if form.daily_rent.errors %}<div class="invalid-feedback d-block">{{ form.daily_rent.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="col-6">
+              <label class="form-label">状态</label>
+              {{ form.status }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">车辆描述</label>
+              {{ form.description }}
+            </div>
+          </div>
         </div>
-        <div class="col-md-6">
-          <label class="form-label">分类</label>
-          {{ form.category }}
-          {% if form.category.errors %}<div class="invalid-feedback d-block">{{ form.category.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">型号</label>
-          {{ form.model_name }}
-          {% if form.model_name.errors %}<div class="invalid-feedback d-block">{{ form.model_name.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">车牌号</label>
-          {{ form.plate_number }}
-          {% if form.plate_number.errors %}<div class="invalid-feedback d-block">{{ form.plate_number.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">颜色</label>
-          {{ form.color }}
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">座位数</label>
-          {{ form.seats }}
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">排量</label>
-          {{ form.displacement }}
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">燃油类型</label>
-          {{ form.fuel_type }}
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">日租金(元)</label>
-          {{ form.daily_rent }}
-          {% if form.daily_rent.errors %}<div class="invalid-feedback d-block">{{ form.daily_rent.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">状态</label>
-          {{ form.status }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">封面图</label>
-          {{ form.cover_image }}
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">车辆描述</label>
-          {{ form.description }}
+
+        <!-- 右：车辆图片 + 选择图片 -->
+        <div class="split-right">
+          <div class="split-title">🖼️ 车辆图片</div>
+          {% with imgs=vehicle.images.all %}
+            <div class="row g-3 mb-2" id="imageGrid">
+              {% for img in imgs %}
+                <div class="col-md-4">
+                  <div class="card p-2 {% if img.is_cover %}border-primary{% endif %}">
+                    <div class="position-relative">
+                      <img src="{{ img.image.url }}" class="rounded" style="height:200px;width:100%;object-fit:cover" alt="车辆图片">
+                      {% if img.is_cover %}
+                        <span class="badge-status badge-available position-absolute" style="top:8px;left:8px">主图</span>
+                      {% endif %}
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-1">
+                      {% if img.is_cover %}
+                        <button class="btn btn-sm btn-light-soft" type="button" disabled>当前主图</button>
+                      {% else %}
+                        <button class="btn btn-sm btn-soft" type="button"
+                                onclick="postImageAction('{% url 'vehicles:admin_vehicle_image_set_cover' img.id %}')">设为主图</button>
+                      {% endif %}
+                      <button class="btn btn-sm btn-outline-danger" type="button"
+                              onclick="if (confirm('确定删除该图片吗？')) postImageAction('{% url 'vehicles:admin_vehicle_image_delete' img.id %}')">删除</button>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            <div class="text-muted small py-2 {% if imgs %}d-none{% endif %}" id="imageEmpty">
+              暂无图片，可在下方选择。未上传时前台将显示占位图。
+            </div>
+          {% endwith %}
+
+          <div class="mb-3">
+            <label class="form-label">
+              选择图片（可多选，本车没有主图时首张自动设为主图）
+            </label>
+            <input type="file" class="form-control" name="images" id="imageInput"
+                   multiple accept="image/*">
+            {# 新增页由前端决定哪张作主图，随表单提交下标 #}
+            <input type="hidden" name="cover_index" id="coverIndex">
+            <small class="text-muted" id="uploadHint">选择后自动上传，无需其他操作。</small>
+          </div>
         </div>
       </div>
-      <div class="mt-4">
+
+      <div class="mt-4 pt-3 border-top">
         <button class="btn btn-primary" type="submit">保存</button>
         <a class="btn btn-light-soft" href="{% url 'vehicles:admin_vehicle_list' %}">取消</a>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block js %}
+<script>
+/* 图片的设主图/删除是独立请求，但按钮位于主表单内部，不能再嵌套 <form>，
+   故用 JS 动态创建表单提交。 */
+var CSRF_TOKEN = $('input[name="csrfmiddlewaretoken"]').first().val();
+window.postImageAction = function (url) {
+  $('<form>', { method: 'post', action: url, style: 'display:none' })
+    .append($('<input>', { type: 'hidden', name: 'csrfmiddlewaretoken', value: CSRF_TOKEN }))
+    .appendTo('body').submit();
+};
+</script>
+{% if vehicle %}
+<script>
+/* 编辑页：选择图片即自动上传，上传完成后重绘预览区（主图在最前，新图排在原有图片之后）。*/
+$(function () {
+  var uploadUrl = '{% url "vehicles:admin_vehicle_image_upload" vehicle.id %}';
+  var $grid = $('#imageGrid');
+  var $empty = $('#imageEmpty');
+  var $input = $('#imageInput');
+  var $hint = $('#uploadHint');
+
+  function render(images) {
+    var html = images.map(function (img) {
+      var cover = img.is_cover;
+      var action = cover
+        ? '<button class="btn btn-sm btn-light-soft" type="button" disabled>当前主图</button>'
+        : '<button class="btn btn-sm btn-soft" type="button" ' +
+          'onclick="postImageAction(\'' + img.set_cover_url + '\')">设为主图</button>';
+      return '<div class="col-md-4">' +
+          '<div class="card p-2' + (cover ? ' border-primary' : '') + '">' +
+            '<div class="position-relative">' +
+              '<img src="' + img.url + '" class="rounded" style="height:200px;width:100%;object-fit:cover" alt="车辆图片">' +
+              (cover ? '<span class="badge-status badge-available position-absolute" style="top:8px;left:8px">主图</span>' : '') +
+            '</div>' +
+            '<div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-1">' + action +
+              '<button class="btn btn-sm btn-outline-danger" type="button" ' +
+                'onclick="if (confirm(\'确定删除该图片吗？\')) postImageAction(\'' + img.delete_url + '\')">删除</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+    $grid.html(html);
+    $empty.toggleClass('d-none', images.length > 0);
+  }
+
+  $input.on('change', function () {
+    if (!$input[0].files.length) return;
+    var data = new FormData();
+    $.each($input[0].files, function (i, f) { data.append('images', f); });
+    $hint.text('上传中…');
+    $.ajax({
+      url: uploadUrl, method: 'POST', data: data,
+      processData: false, contentType: false,
+      headers: { 'X-CSRFToken': CSRF_TOKEN },
+      dataType: 'json'
+    }).done(function (res) {
+      if (res.success) {
+        render(res.images);
+        $input.val('');
+        window.showToast(res.message, 'success');
+      } else {
+        window.showToast(res.message || '上传失败', 'error');
+      }
+    }).fail(function (xhr) {
+      var msg = '上传失败，请稍后重试';
+      if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+      // 清空控件，便于重新选择同一个文件重试（否则 change 不会再次触发）
+      $input.val('');
+      window.showToast(msg, 'error');
+    }).always(function () {
+      $hint.text('选择后自动上传，无需其他操作。');
+    });
+  });
+});
+</script>
+{% else %}
+<script>
+/* 新增页：车辆尚未落库，图片无处可挂，故预览与主图选择在前端完成——
+   界面与编辑页一致（同样有「设为主图 / 删除」），文件随主表单提交，
+   主图下标经 cover_index 一并提交，保存时由后端落库。*/
+$(function () {
+  var $input = $('#imageInput');
+  var $grid = $('#imageGrid');
+  var $empty = $('#imageEmpty');
+  var $hint = $('#uploadHint');
+  var $coverIndex = $('#coverIndex');
+  var items = [];   // [{file: File, url: string, cover: boolean}]
+
+  function card(item, idx) {
+    var cover = item.cover;
+    var action = cover
+      ? '<button class="btn btn-sm btn-light-soft" type="button" disabled>当前主图</button>'
+      : '<button class="btn btn-sm btn-soft" type="button" data-set-cover="' + idx + '">设为主图</button>';
+    return '<div class="col-md-4">' +
+        '<div class="card p-2' + (cover ? ' border-primary' : '') + '">' +
+          '<div class="position-relative">' +
+            '<img src="' + (item.url || '') + '" class="rounded" style="height:200px;width:100%;object-fit:cover" alt="车辆图片">' +
+            (cover ? '<span class="badge-status badge-available position-absolute" style="top:8px;left:8px">主图</span>' : '') +
+          '</div>' +
+          '<div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-1">' + action +
+            '<button class="btn btn-sm btn-outline-danger" type="button" data-del="' + idx + '">删除</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function render() {
+    // 主图排在最前，与编辑页 ['-is_cover','id'] 的展示顺序一致
+    var ordered = items.map(function (it, i) { return { it: it, i: i }; })
+      .sort(function (a, b) { return (b.it.cover ? 1 : 0) - (a.it.cover ? 1 : 0) || a.i - b.i; });
+    $grid.html(ordered.map(function (o) { return card(o.it, o.i); }).join(''));
+    $empty.toggleClass('d-none', items.length > 0);
+    $hint.text(items.length
+      ? '已选择 ' + items.length + ' 张，点击「保存」后正式上传。'
+      : '选择后显示预览，点击「保存」后正式上传。');
+    // 回写文件列表，保证「保存」时提交的是全部已选图片
+    var dt = new DataTransfer();
+    items.forEach(function (it) { dt.items.add(it.file); });
+    $input[0].files = dt.files;
+    var ci = -1;
+    items.forEach(function (it, i) { if (it.cover) ci = i; });
+    $coverIndex.val(ci >= 0 ? ci : '');
+  }
+
+  $input.on('change', function () {
+    var files = Array.prototype.slice.call($input[0].files);
+    if (!files.length) return;
+    var hasCover = items.some(function (it) { return it.cover; });
+    files.forEach(function (file) {
+      var item = { file: file, url: '', cover: !hasCover };
+      if (!hasCover) hasCover = true;   // 本车还没有主图时，首张自动设为主图
+      items.push(item);
+      var reader = new FileReader();
+      reader.onload = function (e) { item.url = e.target.result; render(); };
+      reader.readAsDataURL(file);
+    });
+    render();
+  });
+
+  $grid.on('click', '[data-set-cover]', function () {
+    var idx = +$(this).data('set-cover');
+    items.forEach(function (it, i) { it.cover = (i === idx); });
+    render();
+  });
+
+  $grid.on('click', '[data-del]', function () {
+    if (!confirm('确定删除该图片吗？')) return;
+    var idx = +$(this).data('del');
+    var wasCover = items[idx].cover;
+    items.splice(idx, 1);
+    // 删除的是主图时，顺延把剩余第一张设为主图
+    if (wasCover && items.length) items[0].cover = true;
+    render();
+  });
+});
+</script>
+{% endif %}
 {% endblock %}

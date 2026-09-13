@@ -66,7 +66,6 @@ class Vehicle(models.Model):
     fuel_type = models.CharField('燃油类型', max_length=20, choices=FUEL_CHOICES, default='gasoline')
     daily_rent = models.DecimalField('日租金(元)', max_digits=10, decimal_places=2)
     status = models.CharField('状态', max_length=20, choices=STATUS_CHOICES, default='available')
-    cover_image = models.ImageField('封面图', upload_to='vehicles/', null=True, blank=True)
     description = models.TextField('车辆描述', blank=True)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
@@ -90,18 +89,23 @@ class Vehicle(models.Model):
 
 
 class VehicleImage(models.Model):
-    """车辆多角度图片：通过 sort_order 控制展示顺序。"""
+    """
+    车辆多角度图片：is_cover 标记主图（详情页大图/列表缩略图）。
+
+    取消排序调整，展示顺序固定为主图在前、其余按 id 升序（即上传先后）。
+    """
     vehicle = models.ForeignKey(
         Vehicle, on_delete=models.CASCADE, related_name='images', verbose_name='车辆'
     )
     image = models.ImageField('图片', upload_to='vehicles/')
-    sort_order = models.PositiveIntegerField('排序', default=0)
+    is_cover = models.BooleanField('是否主图', default=False)
+    sort_order = models.PositiveIntegerField('上传序号', default=0)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
 
     class Meta:
         db_table = 't_vehicle_image'
         verbose_name = '车辆图片'
-        ordering = ['sort_order', 'id']
+        ordering = ['-is_cover', 'id']
 
     def __str__(self):
         return f'{self.vehicle.model_name} 图片'

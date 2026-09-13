@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}首页 - {{ site_name }}{% endblock %}
+{% block title %}首页{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -9,11 +9,13 @@
     <div class="carousel-inner">
       {% for vehicle in banners %}
         <div class="carousel-item {% if forloop.first %}active{% endif %}">
-          {% if vehicle.cover_image %}
-            <img src="{{ vehicle.cover_image.url }}" alt="{{ vehicle.model_name }}">
-          {% else %}
-            <img src="{% static 'images/car-placeholder.svg' %}" alt="{{ vehicle.model_name }}">
-          {% endif %}
+          {% with cover=vehicle.images.all|first %}
+            {% if cover %}
+              <img src="{{ cover.image.url }}" alt="{{ vehicle.model_name }}">
+            {% else %}
+              <img src="{% static 'images/car-placeholder.svg' %}" alt="{{ vehicle.model_name }}">
+            {% endif %}
+          {% endwith %}
           <div class="hero-overlay">
             <div class="container">
               <h2 class="text-white fw-bold">{{ vehicle.brand.name }} {{ vehicle.model_name }}</h2>

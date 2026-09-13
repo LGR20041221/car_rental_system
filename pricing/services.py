@@ -8,7 +8,8 @@
 import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
-from core.holidays import is_holiday
+from chinese_calendar import is_holiday
+
 from pricing.models import PriceRule, SystemSetting
 
 # 各规则的默认调整系数（数据库未配置时兜底）

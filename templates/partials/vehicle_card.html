@@ -1,11 +1,13 @@
 {% load static %}
 <div class="card card-hover vehicle-card h-100">
   <a href="{% url 'vehicles:vehicle_detail' vehicle.id %}">
-    {% if vehicle.cover_image %}
-      <img src="{{ vehicle.cover_image.url }}" class="car-thumb" alt="{{ vehicle.model_name }}">
-    {% else %}
-      <img src="{% static 'images/car-placeholder.svg' %}" class="car-thumb" alt="{{ vehicle.model_name }}">
-    {% endif %}
+    {% with cover=vehicle.images.all|first %}
+      {% if cover %}
+        <img src="{{ cover.image.url }}" class="car-thumb" alt="{{ vehicle.model_name }}">
+      {% else %}
+        <img src="{% static 'images/car-placeholder.svg' %}" class="car-thumb" alt="{{ vehicle.model_name }}">
+      {% endif %}
+    {% endwith %}
   </a>
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-start mb-1">
@@ -19,10 +21,10 @@
           <span>{{ vehicle.fuel_text }}</span>
         </div>
       </div>
-      {% if current_user %}
+      {% if user.is_authenticated %}
         <button class="btn btn-sm fav-toggle {% if vehicle.is_favorited %}btn-accent{% else %}btn-light-soft{% endif %}"
                 data-vehicle-id="{{ vehicle.id }}" title="收藏/取消收藏">
-          <span class="fav-heart">{% if vehicle.is_favorited %}♥{% else %}♡{% endif %}</span>
+          <i class="fav-heart {% if vehicle.is_favorited %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
         </button>
       {% endif %}
     </div>

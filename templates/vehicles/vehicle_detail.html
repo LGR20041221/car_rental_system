@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}{{ vehicle.brand.name }} {{ vehicle.model_name }} - {{ site_name }}{% endblock %}
+{% block title %}{{ vehicle.brand.name }} {{ vehicle.model_name }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
   <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item"><a href="{% url 'core:home' %}">首页</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'vehicles:home' %}">首页</a></li>
       <li class="breadcrumb-item"><a href="{% url 'vehicles:vehicle_list' %}">车辆列表</a></li>
       <li class="breadcrumb-item active">{{ vehicle.model_name }}</li>
     </ol>
@@ -16,6 +16,7 @@
     <!-- 图片区 -->
     <div class="col-lg-7">
       <div class="card p-3">
+        {# gallery 已按 ['-is_cover','id'] 排序，gallery.0 即主图 #}
         {% with gallery=images %}
           {% if gallery %}
             <img id="mainImage" src="{{ gallery.0.image.url }}" class="rounded car-thumb" style="height:360px;object-fit:cover" alt="{{ vehicle.model_name }}">
@@ -25,8 +26,6 @@
                      onclick="document.getElementById('mainImage').src=this.src">
               {% endfor %}
             </div>
-          {% elif vehicle.cover_image %}
-            <img src="{{ vehicle.cover_image.url }}" class="rounded car-thumb" style="height:360px;object-fit:cover" alt="{{ vehicle.model_name }}">
           {% else %}
             <img src="{% static 'images/car-placeholder.svg' %}" class="rounded car-thumb" style="height:360px;object-fit:cover" alt="{{ vehicle.model_name }}">
           {% endif %}
@@ -43,13 +42,13 @@
           </span>
         </div>
         <div class="d-flex gap-2 mb-3">
-          {% if current_user %}
-            <button class="btn {% if is_favorited %}btn-accent{% else %}btn-outline-primary{% endif %} btn-sm fav-toggle"
+          {% if user.is_authenticated %}
+            <button class="btn {% if is_favorited %}btn-accent{% else %}btn-light-soft{% endif %} btn-sm fav-toggle"
                     data-vehicle-id="{{ vehicle.id }}">
-              <span class="fav-heart">{% if is_favorited %}♥{% else %}♡{% endif %}</span> 收藏
+              <i class="fav-heart {% if is_favorited %}bi-heart-fill{% else %}bi-heart{% endif %}"></i> 收藏
             </button>
           {% endif %}
-          <span class="btn btn-light-soft btn-sm disabled">❤️ {{ favorite_count }} 人收藏</span>
+          <span class="btn btn-light-soft btn-sm disabled">❤️ <span class="fav-count">{{ favorite_count }}</span> 人收藏</span>
         </div>
         <div class="mb-3">
           <span class="price" style="font-size:2rem;">¥{{ vehicle.daily_rent }}</span><span class="text-muted">/天</span>
@@ -71,7 +70,7 @@
         <a href="{% url 'orders:order_create' %}?vehicle_id={{ vehicle.id }}" class="btn btn-accent btn-lg w-100">
           立即预订 · ¥{{ vehicle.daily_rent }}/天
         </a>
-        {% if current_user %}
+        {% if user.is_authenticated %}
           <p class="text-muted small mt-2 mb-0 text-center">动态定价：节假日/旺季上浮，早鸟/长租有优惠</p>
         {% else %}
           <p class="text-muted small mt-2 mb-0 text-center"><a href="{% url 'users:login' %}">登录</a>后可下单预订</p>

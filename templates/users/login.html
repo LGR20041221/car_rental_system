@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}用户登录 - {{ site_name }}{% endblock %}
+{% block title %}用户登录{% endblock %}
+{% block navbar %}{% endblock %}   {# 认证页无顶部导航栏 #}
+{% block footer %}{% endblock %}   {# 认证页无页脚，卡片整屏垂直居中 #}
 
 {% block content %}
 <div class="auth-wrap">

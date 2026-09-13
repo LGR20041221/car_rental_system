@@ -195,7 +195,7 @@ input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: .4rem; verti
 
 /* ---------- 登录/注册页 ---------- */
 .auth-wrap {
-  min-height: calc(100vh - 130px);
+  min-height: 100vh;              /* 认证页无导航栏/页脚，占满整屏使卡片垂直居中 */
   display: flex; align-items: center;
   background:
     radial-gradient(900px 400px at 10% -10%, rgba(30, 58, 138, .12), transparent),
@@ -216,6 +216,27 @@ input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: .4rem; verti
 .search-panel {
   background: #fff; border-radius: 14px; box-shadow: var(--shadow-lg);
   padding: 1.2rem 1.4rem;
+}
+
+/* ---------- 车辆表单页：左（车辆信息）右（车辆图片）4:6 分栏 ---------- */
+.vehicle-split {
+  display: flex; gap: 1.75rem; align-items: flex-start;
+}
+.vehicle-split .split-left { flex: 0 0 40%; max-width: 40%; min-width: 0; }
+.vehicle-split .split-right { flex: 0 0 60%; max-width: 60%; min-width: 0; }
+.vehicle-split .split-title {
+  font-weight: 700; margin-bottom: .75rem;
+  display: flex; align-items: center; gap: .4rem;
+}
+.vehicle-split .split-title::before {
+  content: ""; width: 4px; height: 16px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--primary), var(--accent));
+}
+@media (max-width: 991.98px) {
+  /* 窄屏退化为上下堆叠，避免字段被挤压 */
+  .vehicle-split { flex-direction: column; }
+  .vehicle-split .split-left,
+  .vehicle-split .split-right { flex: 0 0 auto; max-width: 100%; width: 100%; }
 }
 
 /* ---------- 管理端布局 ---------- */
@@ -241,40 +262,102 @@ input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: .4rem; verti
 /* 侧边栏折叠按钮样式 */
 .side-toggle { cursor: pointer; }
 
-/* ---------- 数据大屏（深色主题） ---------- */
+/* ---------- 数据大屏（深色科技风主题） ---------- */
 .screen-body {
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(59, 91, 219, .25), transparent),
-              radial-gradient(900px 500px at 110% 10%, rgba(249, 115, 22, .18), transparent),
-              #0b1226;
+  background:
+    linear-gradient(rgba(96, 165, 250, .045) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgba(96, 165, 250, .045) 1px, transparent 1px) 0 0 / 40px 40px,
+    radial-gradient(1200px 600px at 20% -10%, rgba(59, 91, 219, .28), transparent),
+    radial-gradient(900px 500px at 110% 10%, rgba(249, 115, 22, .18), transparent),
+    #0b1226;
   color: #e2e8f0; min-height: 100vh;
 }
 .screen-header {
   padding: 1rem 2rem;
   background: rgba(255,255,255,.04);
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(96,165,250,.25);
   display: flex; align-items: center; justify-content: space-between;
 }
-.screen-title { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: .1em; }
-.screen-title i { color: var(--accent); }
+.screen-title {
+  font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: .1em;
+  display: flex; align-items: center; gap: .6rem;
+}
+.screen-clock {
+  font-variant-numeric: tabular-nums; color: #60a5fa; font-weight: 700;
+  letter-spacing: .08em; font-size: 1.05rem;
+}
 .screen-stat {
-  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05); border: 1px solid rgba(96,165,250,.25);
   border-radius: 12px; padding: .8rem 1rem; text-align: center;
 }
-.screen-stat .num { font-size: 1.6rem; font-weight: 800; color: #fff; }
+.screen-stat .num {
+  font-size: 1.5rem; font-weight: 800; color: #fff;
+  font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(96,165,250,.55);
+}
 .screen-stat .lbl { color: #94a3b8; font-size: .8rem; }
-.screen-chart {
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 12px; padding: .8rem;
+
+/* 面板：半透明底 + 青色边框 + 四角 L 形角标 */
+.screen-panel {
+  position: relative;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(96,165,250,.28);
+  border-radius: 10px;
+  padding: .9rem 1rem;
 }
-.screen-chart .chart-title {
-  color: #cbd5e1; font-weight: 600; font-size: .9rem; margin-bottom: .4rem;
+.screen-panel::before, .screen-panel::after {
+  content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
+}
+.screen-panel::before {
+  top: -1px; left: -1px;
+  border-top: 2px solid #60a5fa; border-left: 2px solid #60a5fa;
+  border-top-left-radius: 10px;
+}
+.screen-panel::after {
+  bottom: -1px; right: -1px;
+  border-bottom: 2px solid #60a5fa; border-right: 2px solid #60a5fa;
+  border-bottom-right-radius: 10px;
+}
+.panel-title {
+  color: #cbd5e1; font-weight: 600; font-size: .9rem; margin-bottom: .5rem;
   display: flex; align-items: center; gap: .4rem;
+  background: linear-gradient(90deg, rgba(96,165,250,.16), transparent);
+  padding: .25rem .5rem; border-radius: 6px;
 }
-.screen-chart .chart-title::before {
-  content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--accent);
+.panel-title::before {
+  content: ""; width: 4px; height: 16px; border-radius: 2px;
+  background: linear-gradient(180deg, #60a5fa, #f97316);
 }
 .chart-box { width: 100%; height: 240px; }
+
+/* KPI 面板 */
+.kpi-panel { text-align: center; }
+.kpi-label { color: #94a3b8; font-size: .8rem; margin-bottom: .2rem; }
+.kpi-value {
+  font-size: 1.9rem; font-weight: 800; color: #e0f2fe;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(96,165,250,.7);
+}
+.pulse-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: #34d399;
+  box-shadow: 0 0 10px #34d399; display: inline-block;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .35; transform: scale(.75); }
+}
+
+/* 最新订单滚动列表 */
+.ticker { max-height: 220px; overflow: hidden; font-size: .78rem; }
+.ticker-row {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .4rem .2rem; border-bottom: 1px dashed rgba(148,163,184,.18);
+}
+.ticker-row .tk-no { color: #64748b; flex: 0 0 108px; }
+.ticker-row .tk-user { color: #cbd5e1; flex: 0 0 56px; }
+.ticker-row .tk-car { color: #e2e8f0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ticker-row .tk-amount { color: #f97316; font-weight: 700; flex: 0 0 72px; text-align: right; }
+.ticker-row .tk-status { flex: 0 0 auto; font-size: .7rem; }
 
 /* ---------- 全局消息提示 ---------- */
 .toast-global {
@@ -286,14 +369,27 @@ input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: .4rem; verti
 .toast-global.toast-success { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
 .toast-global.toast-error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
 
+/* ---------- 订单详情：车辆信息整块可点击 ---------- */
+.vehicle-info-link {
+  border-radius: 10px; padding: .35rem; margin: -.35rem;
+  transition: background .2s;
+}
+.vehicle-info-link:hover { background: #f3f4f6; color: inherit; }
+
+/* ---------- 我的优惠券：领券中心展开时让位 ---------- */
+/* #claimCenter 是 Bootstrap collapse，展开后带 .show；它与下方券卡列表
+   同为 .card-body 内兄弟节点，用 ~ 即可：展开→隐藏列表聚焦领券，折叠→恢复 */
+#claimCenter.show ~ ul.list-group { display: none; }
+
 /* ---------- 分页 ---------- */
 .pagination .page-link { color: var(--primary); border-radius: 8px; margin: 0 2px; border-color: var(--border); }
 .pagination .page-item.active .page-link { background: var(--primary); border-color: var(--primary); color: #fff; }
 
 /* ---------- 页脚 ---------- */
 .footer-site {
-  background: #0f172a; color: #94a3b8; padding: 1.4rem 0; margin-top: 2.5rem;
+  background: #0f172a; color: #94a3b8; padding: 1.4rem 0;
   text-align: center; font-size: .85rem;
+  flex-shrink: 0;   /* 作为 flex 子项不被压缩，配合 main 实现 sticky footer */
 }
 .footer-site a { color: #e2e8f0; }
 

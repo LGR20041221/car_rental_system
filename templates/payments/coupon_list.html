@@ -1,72 +1,81 @@
 {% extends 'profile_base.html' %}
-{% block title %}我的优惠券 - {{ site_name }}{% endblock %}
+{% block title %}我的优惠券{% endblock %}
 
 {% block profile_content %}
-<!-- 可领取优惠券 -->
-<div class="card mb-4">
-  <div class="card-header">🎁 领券中心</div>
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span>🎁 我的优惠券</span>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-soft btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#claimCenter">
+        🎫 领券中心
+      </button>
+      <div class="btn-group btn-group-sm">
+        <a class="btn {% if not status %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'payments:coupon_list' %}">全部</a>
+        {% for value, label in status_choices %}
+          <a class="btn {% if status == value %}btn-primary{% else %}btn-light-soft{% endif %}" href="{% url 'payments:coupon_list' %}?status={{ value }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
   <div class="card-body">
-    <div class="row g-3">
-      {% for coupon in claimable %}
-        <div class="col-md-6">
-          <div class="card border-primary-2" style="border-color:#c7d2fe;">
-            <div class="card-body d-flex justify-content-between align-items-center">
-              <div>
-                <div class="fw-bold text-primary-2">{{ coupon.name }}</div>
-                <div class="text-accent fw-bold fs-4">{{ coupon.value_text }}</div>
-                <div class="text-muted small">{% if coupon.min_amount %}满 {{ coupon.min_amount }} 可用{% else %}无门槛{% endif %} · 有效期至 {{ coupon.end_date|date:'m-d' }}</div>
+    {# 领券中心（折叠区，点按钮展开） #}
+    <div class="collapse mb-4" id="claimCenter">
+      <div class="border rounded p-3 mb-3">
+        <div class="fw-bold mb-3">🎫 可领取优惠券</div>
+        <div class="row g-3">
+          {% for coupon in claimable %}
+            <div class="col-md-6">
+              <div class="card" style="border-color:#c7d2fe;">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="fw-bold text-primary-2">{{ coupon.name }}</div>
+                    <div class="text-accent fw-bold fs-4">{{ coupon.value_text }}</div>
+                    <div class="text-muted small">
+                      {% if coupon.min_amount %}满 {{ coupon.min_amount }} 可用{% else %}无门槛{% endif %}
+                      · 有效期至 {{ coupon.end_date|date:'m-d' }}
+                    </div>
+                  </div>
+                  <form method="post" action="{% url 'payments:coupon_claim' coupon.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-accent btn-sm">领取</button>
+                  </form>
+                </div>
               </div>
-              <form method="post" action="{% url 'payments:coupon_claim' coupon.id %}">
-                {% csrf_token %}
-                <button class="btn btn-accent btn-sm">领取</button>
-              </form>
             </div>
-          </div>
+          {% empty %}
+            <div class="col-12 text-muted">暂无可领取的优惠券</div>
+          {% endfor %}
         </div>
+      </div>
+    </div>
+    {# 当前状态下的优惠券列表（内联渲染，不另抽模板片段） #}
+    <ul class="list-group list-group-flush">
+      {% for uc in coupons %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold">{{ uc.coupon.name }}</div>
+            <div class="text-accent fw-bold">{{ uc.coupon.value_text }}</div>
+            <small class="text-muted">
+              {% if uc.coupon.min_amount %}满{{ uc.coupon.min_amount }}可用{% else %}无门槛{% endif %}
+              · 有效期至 {{ uc.coupon.end_date|date:'Y-m-d' }}
+            </small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% if uc.status == 'unused' %}
+              <a class="btn btn-sm btn-soft" href="{% url 'vehicles:vehicle_list' %}">去使用</a>
+            {% endif %}
+            <span class="badge-status
+              {% if uc.status == 'unused' %}badge-to_return
+              {% elif uc.status == 'used' %}badge-cancelled
+              {% else %}badge-off_shelf{% endif %}">
+              {{ uc.status_text }}
+            </span>
+          </div>
+        </li>
       {% empty %}
-        <div class="col-12 text-muted">暂无可领取的优惠券</div>
+        <li class="list-group-item text-muted text-center py-4">暂无优惠券</li>
       {% endfor %}
-    </div>
-  </div>
-</div>
-
-<div class="row g-4">
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header">✅ 可用优惠券</div>
-      <ul class="list-group list-group-flush">
-        {% for uc in available %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <div class="fw-bold">{{ uc.coupon.name }}</div>
-              <div class="text-accent fw-bold">{{ uc.coupon.value_text }}</div>
-              <small class="text-muted">{% if uc.coupon.min_amount %}满{{ uc.coupon.min_amount }}可用{% else %}无门槛{% endif %} · 有效期至 {{ uc.coupon.end_date|date:'Y-m-d' }}</small>
-            </div>
-            <a class="btn btn-sm btn-soft" href="{% url 'vehicles:vehicle_list' %}">去使用</a>
-          </li>
-        {% empty %}
-          <li class="list-group-item text-muted text-center py-4">暂无可用优惠券</li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header">🕐 已使用记录</div>
-      <ul class="list-group list-group-flush">
-        {% for uc in used %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <div class="fw-bold">{{ uc.coupon.name }}</div>
-              <small class="text-muted">{{ uc.coupon.value_text }}</small>
-            </div>
-            <span class="badge-status badge-cancelled">已使用</span>
-          </li>
-        {% empty %}
-          <li class="list-group-item text-muted text-center py-4">暂无使用记录</li>
-        {% endfor %}
-      </ul>
-    </div>
+    </ul>
   </div>
 </div>
 {% endblock %}

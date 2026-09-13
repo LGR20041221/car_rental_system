@@ -7,12 +7,12 @@
 | 模块 | 说明 |
 |------|------|
 | 用户管理 | 注册（邮箱验证码）、登录、密码找回、个人信息、修改密码、管理端用户管理 |
-| 车辆管理 | 车辆列表筛选、详情查看、管理端增删改查、图片管理、品牌/分类维护 |
+| 车辆管理 | 车辆列表筛选、详情查看、管理端增删改查、品牌/分类维护；图片在车辆新增/编辑页内管理（上传/预览/设为主图/删除） |
 | 租赁订单 | 下单（租期冲突校验）、模拟支付、取消、续租审批、确认还车、管理端审核/强制还车 |
 | 支付与费用 | 动态租金计算、押金管理、违约金、优惠券领取/使用、账单、退款处理、财务报表 |
 | 评价模块 | 已完成订单 1-5 星评价、车辆详情查看评价、管理端隐藏不当评价、评分统计 |
 | 收藏模块 | 一键收藏/取消、我的收藏（筛选/批量取消）、管理端收藏排行与偏好分析 |
-| 推荐模块 | 车辆详情同品牌相似推荐（最多 5 辆）、首页销量 TOP10 热门推荐 |
+| 推荐模块 | 车辆详情同品牌相似推荐（最多 5 辆）、首页按已完成订单数 TOP10 热门推荐（TOP3 上轮播） |
 | 动态定价 ⭐ | 节假日/周末上浮、旺季/淡季调价、早鸟/长租优惠，价格预览逐日明细 |
 | 数据可视化 ⭐ | 数据大屏：订单趋势、收入构成、热门车型、车辆利用率、用户增长 |
 | 消息通知 | 订单状态通知、消息中心（已读/未读）、系统公告（模糊搜索/详情/置顶） |
@@ -24,8 +24,10 @@
 - **前端**：Bootstrap 5.3 + jQuery 3.7（本地静态资源，离线可用）
 - **可视化**：ECharts 5.5
 - **数据库**：MySQL 8.0（库名 `car_rental_system`，ORM 迁移管理）
-- **认证**：Django Session + 自定义 `@login_required` / `@admin_required` 装饰器
-- **密码存储**：bcrypt（BCryptSHA256PasswordHasher）
+- **认证**：Django 标准 Session 认证（`django.contrib.auth`）+ `@admin_required` 装饰器
+- **密码存储**：Django 默认 PBKDF2PasswordHasher（`set_password`）
+- **节假日判定**：chinesecalendar（动态定价「节假日上浮」规则）
+- **时区**：`USE_TZ = False`，数据库直接存本地时间（Asia/Shanghai），日期查询用 `__date`
 - **验证码**：6 位随机数字，Django 缓存存储（开发用 LocMemCache，生产可切换 Redis）
 
 ## 三、环境要求
@@ -42,7 +44,7 @@
 
 ```bash
 pip install -r requirements.txt
-# 或指定安装：Django>=4.2,<5.0 mysqlclient bcrypt Pillow
+# 或指定安装：Django>=4.2,<5.0 mysqlclient chinesecalendar Pillow
 ```
 
 ### 2. 准备数据库
@@ -135,9 +137,8 @@ car_rental_system/
 ├── manage.py                  # Django 管理入口
 ├── requirements.txt           # 依赖清单
 ├── car_rental_system/         # 项目配置（settings/urls/wsgi）
-├── core/                      # 公共：首页、装饰器、中间件、节假日、推荐服务
-├── users/                     # 用户管理（认证/个人中心/后台用户维护）
-├── vehicles/                  # 车辆管理（品牌/分类/车辆/图片）
+├── users/                     # 用户管理（认证/个人中心/后台用户维护/权限装饰器）
+├── vehicles/                  # 车辆管理（首页/品牌/分类/车辆与图片/推荐服务）
 ├── pricing/                   # 动态定价（规则配置/定价引擎/价格预览）
 ├── orders/                    # 租赁订单（下单/支付/续租/还车/审核）
 ├── payments/                  # 支付与费用（优惠券/账单/退款/财务）
@@ -165,7 +166,8 @@ car_rental_system/
 | 注册时验证码没收到 | 查看运行 `runserver` 的终端输出，开发阶段验证码打印在控制台 |
 | MySQL 连接报错 | 确认 MySQL 服务已启动、`car_rental_system` 库已创建、`settings.py` 密码正确 |
 | 中文字符乱码 | 数据库需使用 `utf8mb4` 字符集 |
-| 页面样式异常 | 确认 `static/lib/` 下存在 bootstrap/jquery/echarts 本地文件（已内置） |
+| 页面样式异常 | 确认 `static/lib/` 下存在 bootstrap/jquery/echarts/bootstrap-icons 本地文件（已内置） |
+| 定价提示节假日判定失败 | chinesecalendar 仅覆盖 2004–2026 年，超范围会抛 NotImplementedError |
 
 ## 十一、交付物
 

@@ -6,14 +6,13 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 
-from core.decorators import admin_required, login_required
-from notifications.services import create_notification
+from users.decorators import admin_required
 from users.forms import (
     AdminUserForm,
     ChangePasswordForm,
@@ -39,7 +38,6 @@ def send_code(request):
             email = form.cleaned_data['email']
             success, message = send_verification_code(email)
             return JsonResponse({'success': success, 'message': message})
-        errors = form.errors.get_json_data()
         return JsonResponse({'success': False, 'message': '邮箱格式不正确'}, status=400)
     return JsonResponse({'success': False, 'message': '请求方式错误'}, status=405)
 
@@ -48,8 +46,8 @@ def register(request):
     """
     用户注册：校验唯一性与验证码，成功后创建用户并跳转登录页。
     """
-    if request.current_user is not None:
-        return redirect('core:home')
+    if request.user.is_authenticated:
+        return redirect('vehicles:home')
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -69,56 +67,56 @@ def register(request):
     return render(request, 'users/register.html', {'form': form})
 
 
-def login(request):
+def login_view(request):
     """
-    用户登录：校验账号密码，成功后写入 session 并跳转。
+    用户登录：校验账号密码，成功后建立 Django 会话并跳转。
 
-    装饰器拦截时已把原访问路由写入登录页地址的 next 参数（?next=原路由），
+    login_required 拦截时已把原访问路由写入登录页地址的 next 参数（?next=原路由），
     登录成功后直接回跳该原目标页；无 next 时管理员跳仪表盘、普通用户跳首页。
     """
-    if request.current_user is not None:
-        return redirect('core:home')
+    if request.user.is_authenticated:
+        return redirect('vehicles:home')
     if request.method == 'POST':
         form = LoginForm(request.POST)
         # next 从路由查询参数中获取（表单提交回当前 ?next=... 地址）
         next_url = request.GET.get('next') or request.POST.get('next', '')
         if form.is_valid():
             user = form.user
-            request.session['user_id'] = user.id
+            login(request, user)
             messages.success(request, '登录成功')
             # 仅允许站内相对路径，防止开放重定向；优先回跳原目标页
             if next_url and next_url.startswith('/') and not next_url.startswith('//'):
                 return redirect(next_url)
             if user.is_admin:
                 return redirect('dashboard:admin_dashboard')
-            return redirect('core:home')
+            return redirect('vehicles:home')
         messages.error(request, form.errors['__all__'][0] if '__all__' in form.errors else '登录失败')
     else:
         form = LoginForm()
     return render(request, 'users/login.html', {'form': form})
 
 
-def logout(request):
+def logout_view(request):
     """
-    退出登录：清空 session 并跳转首页。
+    退出登录：清空会话并跳转登录页（形成「退出→登录」闭环）。
     """
-    request.session.flush()
+    logout(request)
     messages.success(request, '已安全退出登录')
-    return redirect('core:home')
+    return redirect('users:login')
 
 
 def forgot_password(request):
     """
     密码找回：通过邮箱验证码重置密码。
     """
-    if request.current_user is not None:
-        return redirect('core:home')
+    if request.user.is_authenticated:
+        return redirect('vehicles:home')
     if request.method == 'POST':
         form = ForgotPasswordForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
             user = User.objects.filter(email=data['email']).first()
-            user.password = make_password(data['new_password'])
+            user.set_password(data['new_password'])
             user.save(update_fields=['password', 'updated_at'])
             messages.success(request, '密码重置成功，请用新密码登录')
             return redirect('users:login')
@@ -140,7 +138,7 @@ def profile_info(request):
     个人信息维护：修改用户名、手机号、邮箱，均校验唯一性。
     管理员访问时渲染管理端布局（admin_base），普通用户渲染个人中心布局。
     """
-    user = request.current_user
+    user = request.user
     if request.method == 'POST':
         form = ProfileForm(request.POST, instance=user)
         if form.is_valid():
@@ -151,7 +149,7 @@ def profile_info(request):
     else:
         form = ProfileForm(instance=user)
     template = 'users/admin_profile_info.html' if user.is_admin else 'users/profile_info.html'
-    return render(request, template, {'form': form, 'title': '个人信息'})
+    return render(request, template, {'form': form})
 
 
 @login_required
@@ -160,21 +158,21 @@ def change_password(request):
     修改密码：校验原密码后更新为新密码。
     管理员访问时渲染管理端布局（admin_base）。
     """
-    user = request.current_user
+    user = request.user
     if request.method == 'POST':
         form = ChangePasswordForm(request.POST, user=user)
         if form.is_valid():
-            user.password = make_password(form.cleaned_data['new_password'])
+            user.set_password(form.cleaned_data['new_password'])
             user.save(update_fields=['password', 'updated_at'])
             messages.success(request, '密码修改成功，请重新登录')
-            # 修改密码后重新登录
-            request.session.flush()
+            # 修改密码后退出登录，要求用新密码重新登录
+            logout(request)
             return redirect('users:login')
         messages.error(request, '修改失败，请检查填写信息')
     else:
         form = ChangePasswordForm(user=user)
     template = 'users/admin_change_password.html' if user.is_admin else 'users/change_password.html'
-    return render(request, template, {'form': form, 'title': '修改密码'})
+    return render(request, template, {'form': form})
 
 
 @admin_required
@@ -238,7 +236,7 @@ def admin_user_edit(request, user_id):
             user = form.save(commit=False)
             password = form.cleaned_data.get('password')
             if password:
-                user.password = make_password(password)
+                user.set_password(password)
             user.save()
             messages.success(request, f'用户 {user.username} 信息已更新')
             return redirect('users:admin_user_detail', user_id=user.id)

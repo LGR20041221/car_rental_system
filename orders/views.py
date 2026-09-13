@@ -5,14 +5,15 @@ import datetime
 import logging
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.decorators import admin_required, login_required
 from orders import services as order_services
 from orders.forms import ExtendForm, OrderCreateForm
 from orders.models import Order
 from pricing.services import calculate_price, get_deposit
+from users.decorators import admin_required
 from vehicles.models import Vehicle
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ def order_create(request):
     from notifications.services import create_notification
     from payments.services import get_user_valid_coupons, get_user_coupon_by_id
 
-    user = request.current_user
+    user = request.user
     vehicle = None
     vehicle_id = request.POST.get('vehicle_id') or request.GET.get('vehicle_id')
     if vehicle_id:
@@ -104,7 +105,7 @@ def order_detail(request, order_id):
     """
     order = get_object_or_404(
         Order.objects.select_related('vehicle__brand', 'user'),
-        pk=order_id, user=request.current_user,
+        pk=order_id, user=request.user,
     )
     # 页面访问时刷新订单状态
     order_services.process_order_statuses()
@@ -119,6 +120,8 @@ def order_detail(request, order_id):
         'can_pay': can_pay,
         'can_extend': can_extend,
         'can_confirm_return': can_confirm_return,
+        # 同一订单可多次评价，全部列出
+        'order_reviews': order.reviews.order_by('-created_at'),
     }
     return render(request, 'orders/order_detail.html', context)
 
@@ -127,7 +130,7 @@ def order_detail(request, order_id):
 def order_pay(request, order_id):
     """订单支付（模拟支付）：待支付订单支付租金与押金。"""
     from notifications.services import create_notification
-    order = get_object_or_404(Order, pk=order_id, user=request.current_user)
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
     if order.status != 'pending':
         messages.error(request, '当前订单状态不可支付')
         return redirect('orders:order_detail', order_id=order.id)
@@ -141,7 +144,7 @@ def order_pay(request, order_id):
 def order_cancel(request, order_id):
     """取消订单：待支付/已支付订单可免费取消，已支付订单自动退款。"""
     from notifications.services import create_notification
-    order = get_object_or_404(Order, pk=order_id, user=request.current_user)
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
     if order.status not in ['pending', 'paid']:
         messages.error(request, '当前订单状态不可取消')
         return redirect('orders:order_detail', order_id=order.id)
@@ -156,7 +159,7 @@ def order_cancel(request, order_id):
 def order_extend(request, order_id):
     """申请续租：填写续租目标日期，提交后等待管理员审批。"""
     from notifications.services import create_notification
-    order = get_object_or_404(Order, pk=order_id, user=request.current_user)
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
     if request.method == 'POST':
         form = ExtendForm(request.POST)
         if form.is_valid():
@@ -177,7 +180,7 @@ def order_extend(request, order_id):
 def order_confirm_return(request, order_id):
     """确认还车：用户确认车辆已归还，订单进入「待还车」等待管理员核验。"""
     from notifications.services import create_notification
-    order = get_object_or_404(Order, pk=order_id, user=request.current_user)
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
     if order.status not in ['renting', 'overdue']:
         messages.error(request, '当前订单状态不可确认还车')
         return redirect('orders:order_detail', order_id=order.id)
@@ -192,7 +195,7 @@ def my_orders(request):
     """我的订单：按状态筛选查看个人全部订单。"""
     order_services.process_order_statuses()
     status = request.GET.get('status', '')
-    qs = Order.objects.filter(user=request.current_user).select_related('vehicle__brand').order_by('-created_at')
+    qs = Order.objects.filter(user=request.user).select_related('vehicle__brand').order_by('-created_at')
     if status:
         qs = qs.filter(status=status)
     paginator = Paginator(qs, 15)

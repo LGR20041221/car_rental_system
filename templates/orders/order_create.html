@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}下单确认 - {{ site_name }}{% endblock %}
+{% block title %}下单确认{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -11,11 +11,13 @@
       {% if vehicle %}
         <div class="card mb-4">
           <div class="card-body d-flex gap-3">
-            {% if vehicle.cover_image %}
-              <img src="{{ vehicle.cover_image.url }}" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="{{ vehicle.model_name }}">
-            {% else %}
-              <img src="{% static 'images/car-placeholder.svg' %}" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="{{ vehicle.model_name }}">
-            {% endif %}
+            {% with cover=vehicle.images.all|first %}
+              {% if cover %}
+                <img src="{{ cover.image.url }}" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="{{ vehicle.model_name }}">
+              {% else %}
+                <img src="{% static 'images/car-placeholder.svg' %}" style="width:160px;height:110px;object-fit:cover;border-radius:10px" alt="{{ vehicle.model_name }}">
+              {% endif %}
+            {% endwith %}
             <div>
               <h5 class="fw-bold mb-1">{{ vehicle.brand.name }} {{ vehicle.model_name }}</h5>
               <div class="text-muted small mb-1">{{ vehicle.category.name }} · {{ vehicle.seats }}座 · {{ vehicle.fuel_text }} · {{ vehicle.color }}</div>

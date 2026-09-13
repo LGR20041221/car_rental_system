@@ -98,12 +98,17 @@
       success: function (res) {
         if (res.success) {
           window.showToast(res.message, 'success');
-          // 更新按钮状态与图标
-          $btn.toggleClass('active', res.is_favorited);
-          if ($btn.find('.fav-heart').length) {
-            $btn.find('.fav-heart').text(res.is_favorited ? '♥' : '♡');
+          // 切换背景类 + 心形图标（bi-heart 空心 ↔ bi-heart-fill 实心，同字号同基线）
+          $btn.removeClass('btn-accent btn-light-soft btn-outline-primary')
+            .addClass(res.is_favorited ? 'btn-accent' : 'btn-light-soft');
+          $btn.find('.fav-heart')
+            .removeClass('bi-heart bi-heart-fill')
+            .addClass(res.is_favorited ? 'bi-heart-fill' : 'bi-heart');
+          // 收藏数量实时更新：详情页按钮与数量是兄弟节点，卡片页再退回容器查找
+          var $count = $btn.siblings('.fav-count');
+          if (!$count.length) {
+            $count = $btn.closest('.card, .vehicle-card, .d-flex').find('.fav-count');
           }
-          var $count = $btn.closest('.card, .vehicle-card').find('.fav-count');
           if ($count.length) $count.text(res.favorite_count);
         } else {
           window.showToast(res.message, 'error');

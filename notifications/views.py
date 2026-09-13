@@ -2,12 +2,13 @@
 消息通知应用视图：消息中心、系统公告、管理端公告维护。
 """
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from core.decorators import admin_required, login_required
 from notifications.forms import AnnouncementForm
 from notifications.models import Announcement, Notification
+from users.decorators import admin_required
 
 
 # ==================== 用户端：消息中心 ====================
@@ -16,7 +17,7 @@ from notifications.models import Announcement, Notification
 def notification_list(request):
     """消息中心：查看历史消息，区分已读/未读。"""
     notifications = Notification.objects.filter(
-        user=request.current_user
+        user=request.user
     ).order_by('-created_at')
     unread_count = notifications.filter(is_read=False).count()
     paginator = Paginator(notifications, 15)
@@ -31,7 +32,7 @@ def notification_list(request):
 def mark_read(request, notification_id):
     """标记单条消息为已读。"""
     notification = get_object_or_404(
-        Notification, pk=notification_id, user=request.current_user
+        Notification, pk=notification_id, user=request.user
     )
     notification.is_read = True
     notification.save(update_fields=['is_read'])
@@ -41,7 +42,7 @@ def mark_read(request, notification_id):
 @login_required
 def mark_all_read(request):
     """全部标记为已读。"""
-    Notification.objects.filter(user=request.current_user, is_read=False).update(is_read=True)
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     messages.success(request, '已全部标记为已读')
     return redirect('notifications:list')
 
@@ -101,7 +102,7 @@ def admin_announcement_create(request):
         form = AnnouncementForm(request.POST)
         if form.is_valid():
             announcement = form.save(commit=False)
-            announcement.publisher = request.current_user
+            announcement.publisher = request.user
             announcement.save()
             messages.success(request, '公告发布成功')
             return redirect('notifications:admin_announcement_list')
@@ -109,7 +110,7 @@ def admin_announcement_create(request):
     else:
         form = AnnouncementForm()
     return render(request, 'notifications/admin_announcement_form.html', {
-        'form': form, 'title': '发布公告',
+        'form': form,
     })
 
 
@@ -127,7 +128,7 @@ def admin_announcement_edit(request, announcement_id):
     else:
         form = AnnouncementForm(instance=announcement)
     return render(request, 'notifications/admin_announcement_form.html', {
-        'form': form, 'title': '编辑公告', 'announcement': announcement,
+        'form': form, 'announcement': announcement,
     })
 
 

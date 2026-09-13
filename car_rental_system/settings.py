@@ -22,7 +22,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 业务应用
-    'core',          # 公共：首页、装饰器、中间件、上下文
     'users',         # 用户管理
     'vehicles',      # 车辆管理
     'pricing',       # 动态定价
@@ -40,9 +39,10 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    # Django 标准认证中间件：从 session 恢复 request.user
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # 自定义中间件：从 session 恢复当前登录用户
-    'core.middleware.CurrentUserMiddleware',
 ]
 
 ROOT_URLCONF = 'car_rental_system.urls'
@@ -57,8 +57,9 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                # Django 标准认证上下文：向模板注入 user 变量
+                'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'core.context_processors.global_context',
             ],
         },
     },
@@ -79,11 +80,7 @@ DATABASES = {
     }
 }
 
-# ========== 密码存储（bcrypt 优先） ==========
-PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-]
+# 密码存储：使用 Django 默认 PBKDF2PasswordHasher（set_password 即走 PBKDF2）
 
 # 自定义用户模型
 AUTH_USER_MODEL = 'users.User'
@@ -97,7 +94,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'zh-hans'
 TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
-USE_TZ = True
+# 数据库存本地时间（Asia/Shanghai），使 created_at__date 等日期查询直接准确
+USE_TZ = False
 
 # ========== 静态资源 ==========
 STATIC_URL = '/static/'

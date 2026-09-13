@@ -4,9 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <title>{% block title %}汽车租赁系统{% endblock %}</title>
   <link rel="icon" href="{% static 'images/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'lib/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'lib/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   {% block css %}{% endblock %}
 </head>
@@ -15,7 +16,7 @@
   <!-- 顶部导航栏 -->
   <nav class="navbar navbar-expand-lg navbar-site sticky-top">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'core:home' %}">
+      <a class="navbar-brand" href="{% url 'vehicles:home' %}">
         <span class="brand-badge">🚗</span>
         汽车租赁<span class="text-accent">智能管理系统</span>
       </a>
@@ -25,7 +26,7 @@
       <div class="collapse navbar-collapse" id="navMain">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'core:home' %}">首页</a>
+            <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'vehicles:home' %}">首页</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if '/vehicles/' in request.path %}active{% endif %}" href="{% url 'vehicles:vehicle_list' %}">车辆列表</a>
@@ -35,8 +36,8 @@
           </li>
         </ul>
         <ul class="navbar-nav align-items-center">
-          {% if current_user %}
-            {% if current_user.is_admin %}
+          {% if user.is_authenticated %}
+            {% if user.is_admin %}
               <li class="nav-item me-2">
                 <a class="btn btn-soft btn-sm" href="{% url 'dashboard:admin_dashboard' %}">
                   🛠️ 管理后台
@@ -46,17 +47,17 @@
             <li class="nav-item me-1">
               <a class="nav-link notify-badge" href="{% url 'notifications:list' %}" title="消息中心">
                 🔔
-                {% if unread_count %}
-                  <span class="badge-count">{{ unread_count }}</span>
+                {% if user.unread_count %}
+                  <span class="badge-count">{{ user.unread_count }}</span>
                 {% endif %}
               </a>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle user-chip" href="#" data-bs-toggle="dropdown">
                 <span class="avatar-circle" style="width:32px;height:32px;font-size:.85rem;">
-                  {{ current_user.username|slice:":1"|upper }}
+                  {{ user.username|slice:":1"|upper }}
                 </span>
-                {{ current_user.username }}
+                {{ user.username }}
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="{% url 'users:profile_info' %}">👤 个人中心</a></li>
@@ -85,20 +86,24 @@
   {% endfor %}
   {% csrf_token %}
 
-  {% block content %}{% endblock %}
+  <!-- flex-grow-1 配合 body 的纵向 flex 实现 sticky footer -->
+  <main class="flex-grow-1">
+    {% block content %}{% endblock %}
+  </main>
 
   <!-- 页脚 -->
   {% block footer %}
   <footer class="footer-site">
     <div class="container">
-      © 2026 {{ site_name }} · 基于 Django 4.x + Bootstrap 5 + ECharts 构建
+      © 2026 汽车租赁系统 · 基于 Django 4.x + Bootstrap 5 + ECharts 构建
     </div>
   </footer>
   {% endblock %}
 
   <script src="{% static 'lib/jquery.min.js' %}"></script>
   <script src="{% static 'lib/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'lib/echarts.min.js' %}"></script>
+  {# ECharts 仅图表页需要，页面通过 {% block echarts %} 按需开启，避免全站加载约 1MB #}
+  {% block echarts %}{% endblock %}
   <script src="{% static 'js/app.js' %}"></script>
   {% block js %}{% endblock %}
 </body>

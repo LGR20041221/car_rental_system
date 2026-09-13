@@ -1,8 +1,9 @@
 {% extends 'admin_base.html' %}
+{% block title %}{% if rule %}编辑规则{% else %}新增规则{% endif %}{% endblock %}
 
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h5 class="fw-bold mb-0">{{ title }}</h5>
+  <h5 class="fw-bold mb-0">{% if rule %}编辑规则{% else %}新增规则{% endif %}</h5>
   <a class="btn btn-light-soft" href="{% url 'pricing:admin_pricing_list' %}">← 返回列表</a>
 </div>
 
